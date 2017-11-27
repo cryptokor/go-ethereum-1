@@ -581,7 +581,7 @@ func (d *Downloader) Terminate() {
 // fetchHeight retrieves the head header of the remote peer to aid in estimating
 // the total time a pending synchronisation would take.
 func (d *Downloader) fetchHeight(p *peer) (*types.Header, error) {
-	glog.V(logger.Debug).Infof("%v: retrieving remote chain height", p)
+	glog.V(logger.Debug).Infof("Peer %s: retrieving remote chain height", p.id)
 
 	// Request the advertised remote head block and wait for the response
 	head, _ := p.currentHead()
@@ -605,6 +605,7 @@ func (d *Downloader) fetchHeight(p *peer) (*types.Header, error) {
 				glog.V(logger.Debug).Infof("%v: invalid number of head headers: %d != 1", p, len(headers))
 				return nil, errBadPeer
 			}
+			glog.V(logger.Detail).Infof("Peer %s: got remote chain height: #%v, %s", headers[0].Number, headers[0].Hash().Hex())
 			return headers[0], nil
 
 		case <-timeout:
