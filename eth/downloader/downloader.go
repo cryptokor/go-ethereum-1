@@ -248,7 +248,7 @@ func (d *Downloader) Progress() (uint64, uint64, uint64, uint64, uint64) {
 func (d *Downloader) Qos() (rtt time.Duration, ttl time.Duration, conf float64) {
 	rtt = d.requestRTT()
 	ttl = d.requestTTL()
-	conf = float64(d.rttConfidence)/1000000.0
+	conf = float64(d.rttConfidence) / 1000000.0
 	return
 }
 
@@ -715,7 +715,7 @@ func (d *Downloader) findAncestor(p *peer, height uint64) (uint64, error) {
 	// If the head fetch already found an ancestor, return
 	if !common.EmptyHash(hash) {
 		if int64(number) <= floor {
-			glog.V(logger.Warn).Infof("%v: potential rewrite attack: #%d [%x…] <= #%d limit", p, number, hash, floor)
+			glog.V(logger.Warn).Warnf("%v: potential rewrite attack: #%d [%x…] <= #%d limit", p, number, hash[:4], floor)
 			return 0, errInvalidAncestor
 		}
 		glog.V(logger.Debug).Infof("%v: common ancestor: #%d [%x…]", p, number, hash)
@@ -778,7 +778,7 @@ func (d *Downloader) findAncestor(p *peer, height uint64) (uint64, error) {
 	}
 	// Ensure valid ancestry and return
 	if int64(start) <= floor {
-		glog.V(logger.Warn).Infof("%v: potential rewrite attack: #%d [%x…] <= #%d limit", p, start, hash[:4], floor)
+		glog.V(logger.Warn).Warnf("%v: potential rewrite attack: #%d [%x…] <= #%d limit", p, start, hash[:4], floor)
 		return 0, errInvalidAncestor
 	}
 	glog.V(logger.Debug).Infof("%v: common ancestor: #%d [%x…]", p, start, hash[:4])
