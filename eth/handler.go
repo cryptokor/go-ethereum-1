@@ -524,7 +524,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
-			glog.V(logger.Debug).Infof("failed to deliver node state data: %v", err)
+			glog.V(logger.Core).Errorf("failed to deliver node state data: %v", err)
 		}
 
 	case p.version >= eth63 && msg.Code == GetReceiptsMsg:
@@ -571,7 +571,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
-			glog.V(logger.Debug).Infof("failed to deliver receipts: %v", err)
+			glog.V(logger.Core).Errorf("failed to deliver receipts: %v", err)
 		}
 
 	case msg.Code == NewBlockHashesMsg:
