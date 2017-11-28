@@ -611,36 +611,36 @@ func (srv *Server) setupConn(fd net.Conn, flags connFlag, dialDest *discover.Nod
 	// Run the encryption handshake.
 	var err error
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
-		glog.V(logger.Debug).Infof("%v faild enc handshake: %v", c, err)
+		glog.V(logger.Debug).Warnf("%v faild enc handshake: %v", c, err)
 		c.close(err)
 		return
 	}
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
 		c.close(DiscUnexpectedIdentity)
-		glog.V(logger.Debug).Infof("%v dialed identity mismatch, want %x", c, dialDest.ID[:8])
+		glog.V(logger.Debug).Warnf("%v dialed identity mismatch, want %x", c, dialDest.ID[:8])
 		return
 	}
 	if err := srv.checkpoint(c, srv.posthandshake); err != nil {
-		glog.V(logger.Debug).Infof("%v failed checkpoint posthandshake: %v", c, err)
+		glog.V(logger.Debug).Warnf("%v failed checkpoint posthandshake: %v", c, err)
 		c.close(err)
 		return
 	}
 	// Run the protocol handshake
 	phs, err := c.doProtoHandshake(srv.ourHandshake)
 	if err != nil {
-		glog.V(logger.Debug).Infof("%v failed proto handshake: %v", c, err)
+		glog.V(logger.Debug).Warnf("%v failed proto handshake: %v", c, err)
 		c.close(err)
 		return
 	}
 	if phs.ID != c.id {
-		glog.V(logger.Debug).Infof("%v wrong proto handshake identity: %x", c, phs.ID[:8])
+		glog.V(logger.Debug).Warnf("%v wrong proto handshake identity: %x", c, phs.ID[:8])
 		c.close(DiscUnexpectedIdentity)
 		return
 	}
 	c.caps, c.name = phs.Caps, phs.Name
 	if err := srv.checkpoint(c, srv.addpeer); err != nil {
-		glog.V(logger.Debug).Infof("%v failed checkpoint addpeer: %v", c, err)
+		glog.V(logger.Debug).Warnf("%v failed checkpoint addpeer: %v", c, err)
 		c.close(err)
 		return
 	}
