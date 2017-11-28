@@ -605,7 +605,7 @@ func (d *Downloader) fetchHeight(p *peer) (*types.Header, error) {
 				glog.V(logger.Debug).Infof("%v: invalid number of head headers: %d != 1", p, len(headers))
 				return nil, errBadPeer
 			}
-			glog.V(logger.Detail).Infof("Peer %s: got remote chain height: #%v, %s", headers[0].Number, headers[0].Hash().Hex())
+			glog.V(logger.Detail).Infof("Peer %s: got remote chain height: #%d, %s", p.id, headers[0].Number, headers[0].Hash().Hex())
 			return headers[0], nil
 
 		case <-timeout:
