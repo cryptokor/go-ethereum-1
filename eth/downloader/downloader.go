@@ -931,7 +931,11 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Header) (
 		d.queue.PendingHeaders, d.queue.InFlightHeaders, throttle, reserve,
 		nil, fetch, capacity, d.peers.HeaderIdlePeers, setIdle, "Header")
 
-	glog.V(logger.Debug).Warnf("Skeleton fill terminated. err=%v", err)
+	if err != nil {
+		glog.V(logger.Core).Errorf("Skeleton fill terminated. err=%v", err)
+	} else {
+		glog.V(logger.Core).Infof("Skeleton fill terminated. err=%v", err)
+	}
 
 	filled, proced := d.queue.RetrieveHeaders()
 	return filled, proced, err
@@ -957,7 +961,12 @@ func (d *Downloader) fetchBodies(from uint64) error {
 		d.queue.PendingBlocks, d.queue.InFlightBlocks, d.queue.ShouldThrottleBlocks, d.queue.ReserveBodies,
 		d.bodyFetchHook, fetch, capacity, d.peers.BodyIdlePeers, setIdle, "Body")
 
-	glog.V(logger.Debug).Infof("Block body download terminated. err=%v", err)
+	if err != nil {
+		glog.V(logger.Core).Errorf("Block body download terminated. err=%v", err)
+	} else {
+		glog.V(logger.Core).Infof("Block body download terminated. err=%v", err)
+	}
+
 	return err
 }
 
@@ -981,7 +990,12 @@ func (d *Downloader) fetchReceipts(from uint64) error {
 		d.queue.PendingReceipts, d.queue.InFlightReceipts, d.queue.ShouldThrottleReceipts, d.queue.ReserveReceipts,
 		d.receiptFetchHook, fetch, capacity, d.peers.ReceiptIdlePeers, setIdle, "Receipt")
 
-	glog.V(logger.Debug).Warnf("Receipt download terminated. err=%v", err)
+	if err != nil {
+		glog.V(logger.Core).Errorf("Receipt download terminated. err=%v", err)
+	} else {
+		glog.V(logger.Core).Infof("Receipt download terminated. err=%v", err)
+	}
+
 	return err
 }
 
@@ -1037,7 +1051,12 @@ func (d *Downloader) fetchNodeData() error {
 		d.queue.PendingNodeData, d.queue.InFlightNodeData, throttle, reserve, nil, fetch,
 		capacity, d.peers.NodeDataIdlePeers, setIdle, "State")
 
-	glog.V(logger.Debug).Warnf("Node state data download terminated. err=%v", err)
+	if err != nil {
+		glog.V(logger.Core).Errorf("Node state data download terminated. err=%v", err)
+	} else {
+		glog.V(logger.Core).Infof("Node state data download terminated. err=%v", err)
+	}
+
 	return err
 }
 
