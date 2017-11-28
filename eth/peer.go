@@ -226,7 +226,7 @@ func (p *peer) RequestNodeData(hashes []common.Hash) error {
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes []common.Hash) error {
-	glog.V(logger.Debug).Infof("%v fetching %v receipts first=%s", p, len(hashes), hashes[0].Hex()})
+	glog.V(logger.Debug).Infof("%v fetching %v receipts first=%s", p, len(hashes), hashes[0].Hex())
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
 }
 
