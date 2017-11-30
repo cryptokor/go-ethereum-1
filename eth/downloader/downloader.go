@@ -313,7 +313,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 	glog.V(logger.Detail).Infoln("Unregistering peer", id)
 	err = d.peers.Unregister(id)
 	if err != nil {
-		glog.V(logger.Error).Errorf("Unregister failed:", err)
+		glog.V(logger.Error).Errorln("Unregister failed:", err)
 		return err
 	}
 	d.queue.Revoke(id)
