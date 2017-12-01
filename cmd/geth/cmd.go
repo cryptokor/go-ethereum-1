@@ -793,6 +793,13 @@ var lsModeName = []string{
 	"Import  ",
 }
 
+var lsModeIcon = []string{
+	"",
+	"︎◉",
+	"◎",
+	"▶︎",
+}
+
 // dispatchStatusLogs handle parsing --log-status=argument and toggling appropriate goroutine status feature logging.
 func dispatchStatusLogs(ctx *cli.Context, ethe *eth.Ethereum) {
 	flagName := aliasableName(LogStatusFlag.Name, ctx)
@@ -856,14 +863,23 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 
 	var lastLoggedBlockNumber uint64
 	var lsMode = lsModeDiscover // init
+	var lsModeN int
+	var lsModeDiscoverSpinners = []string{"➫", "➬", "➭"}
+	// 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
+	var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // len 13
 	var sigc = make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(sigc)
+
 
 	for {
 		select {
 		case <-ticker.C:
 			lenPeers := e.Downloader().GetPeers().Len()
+
+			//rtt, ttl, conf := e.Downloader().Qos()
+			//rttS, ttlS, confS := rtt.String(), ttl.String(), fmt.Sprintf("%1.2f", conf)
+			//qosDisplay := fmt.Sprintf("rtt=%s ttl=%s conf=%s", logger.ColorGreen(rttS), logger.ColorGreen(ttlS), logger.ColorGreen(confS))
 
 			_, current, height, _, _ := e.Downloader().Progress() // origin, current, height, pulled, known
 			mode := e.Downloader().GetMode()
@@ -875,12 +891,12 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			// Discover -> not synchronising (searching for peers)
 			// FullSync/FastSync -> synchronising
 			// Import -> synchronising, at full height
-			fOfHeight := fmt.Sprintf("/ %7d", height)
+			fOfHeight := fmt.Sprintf("%7d", height)
 
 			// Calculate and format percent sync of known height
 			heightRatio := float64(current) / float64(height)
 			heightRatio = heightRatio * 100
-			fHeightRatio := fmt.Sprintf("(%4.2f%%)", heightRatio)
+			fHeightRatio := fmt.Sprintf("%4.2f%%", heightRatio)
 
 			// Wait until syncing because real dl mode will not be engaged until then
 			lsMode = lsModeDiscover
@@ -913,8 +929,6 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			var numTxsDiffPerSecond int
 			var mGasPerSecond = new(big.Int)
 
-			// 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
-			var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // len 13
 			var dominoGraph string
 			var nDom int
 			if numBlocksDiff > 0 && numBlocksDiff != current {
@@ -967,6 +981,10 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			// Update last logged current block number
 			lastLoggedBlockNumber = current
 
+			greenParenify := func(s string) string {
+				return logger.ColorGreen("⟪") + s + logger.ColorGreen("⟫")
+			}
+
 			// Format head block hex for printing (eg. d4e…fa3)
 			cbhexstart := currentBlockHex[2:5] // trim off '0x' prefix
 			cbhexend := currentBlockHex[(len(currentBlockHex) - 3):]
@@ -975,17 +993,33 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			localHeadHex := fmt.Sprintf("%s…%s", cbhexstart, cbhexend)
 			peersOfMax := fmt.Sprintf("%2d/%2d peers", lenPeers, maxPeers)
 			domOrHeight := fOfHeight + " " + fHeightRatio
+			domOrHeight = domOrHeight
+			if len(strings.Replace(domOrHeight, " ", "",  -1)) != 0 {
+				domOrHeight = "height=" + greenParenify(domOrHeight)
+			} else {
+				domOrHeight = ""
+			}
 			var blocksprocesseddisplay string
 			if lsMode != lsModeImport {
-				blocksprocesseddisplay = fmt.Sprintf("~%4d blks %4d txs %2d mgas  /sec", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI)
+				blocksprocesseddisplay = logger.ColorGreen("~") + greenParenify(fmt.Sprintf("%4d blks %4d txs %2d mgas  /sec", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI))
 			} else {
-				blocksprocesseddisplay = fmt.Sprintf("+%4d blks %4d txs %8d mgas", numBlocksDiff, numTxsDiff, mGas.Uint64())
+				blocksprocesseddisplay = logger.ColorGreen("+") + greenParenify(fmt.Sprintf("%4d blks %4d txs %8d mgas", numBlocksDiff, numTxsDiff, mGas.Uint64()))
 				domOrHeight = dominoGraph
 			}
 
 			// Log to ERROR.
+			headDisplay := greenParenify(localHeadHeight + " " + localHeadHex)
+			peerDisplay := greenParenify(peersOfMax)
+
+			modeIcon := logger.ColorGreen(lsModeIcon[lsMode])
+			if lsMode == lsModeDiscover {
+				modeIcon = lsModeDiscoverSpinners[lsModeN % 3]
+			}
+			modeIcon = logger.ColorGreen(modeIcon)
+			lsModeN++
+
 			// This allows maximum user optionality for desired integration with rest of event-based logging.
-			glog.D(logger.Error).Infof("SYNC %s %s %s %s %s %s", lsModeName[lsMode], localHeadHeight, localHeadHex, blocksprocesseddisplay, peersOfMax, domOrHeight)
+			glog.D(logger.Error).Infof("SYNC %s " + modeIcon + "%s %s " + logger.ColorGreen("✌︎︎︎") + "%s %s", lsModeName[lsMode], headDisplay, blocksprocesseddisplay, peerDisplay, domOrHeight)
 
 		case <-sigc:
 			// Listen for interrupt
