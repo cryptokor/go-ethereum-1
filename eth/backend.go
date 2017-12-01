@@ -226,17 +226,21 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		if err != nil {
 			return nil, err
 		}
-		glog.V(logger.Info).Infof("Successfully wrote default ethereum mainnet genesis block: %s", genesis.Hash().Hex())
+		glog.V(logger.Info).Infof("Successfully wrote default ethereum mainnet genesis block: %s", logger.ColorGreen(genesis.Hash().Hex()))
+		glog.D(logger.Info).Infof("Wrote mainnet genesis block: %s", logger.ColorGreen(genesis.Hash().Hex()))
 	}
 
 	// Log genesis block information.
+	var genName string
 	if fmt.Sprintf("%x", genesis.Hash()) == "0cd786a2425d16f152c658316c423e6ce1181e15c3295826d7c9904cba9ce303" {
-		glog.V(logger.Info).Infof("Successfully established morden testnet genesis block: \x1b[36m%s\x1b[39m", genesis.Hash().Hex())
+		genName = "morden testnet"
 	} else if fmt.Sprintf("%x", genesis.Hash()) == "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3" {
-		glog.V(logger.Info).Infof("Successfully established mainnet genesis block: \x1b[36m%s\x1b[39m", genesis.Hash().Hex())
+		genName = "mainnet"
 	} else {
-		glog.V(logger.Info).Infof("Successfully established custom genesis block: \x1b[36m%s\x1b[39m", genesis.Hash().Hex())
+		genName = "custom"
 	}
+	glog.V(logger.Info).Infof("Successfully established %s genesis block: %s", genName, logger.ColorGreen(genesis.Hash().Hex()))
+	glog.D(logger.Info).Infof("Genesis block: %s (%s)", logger.ColorGreen(genesis.Hash().Hex()), genName)
 
 	if config.ChainConfig == nil {
 		return nil, errors.New("missing chain config")

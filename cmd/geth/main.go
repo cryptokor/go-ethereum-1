@@ -237,7 +237,6 @@ func makeCLIApp() (app *cli.App) {
 		glog.SetToStderr(false)
 		glog.SetAlsoToStderr(false)
 
-
 		if ctx.GlobalBool(PrettyFlag.Name) {
 			// Allow manual overrides
 			if !ctx.GlobalIsSet(LogStatusFlag.Name) {

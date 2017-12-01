@@ -26,6 +26,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"strconv"
 )
 
 var OpenFileLimit = 64
@@ -61,6 +62,7 @@ func NewLDBDatabase(file string, cache int, handles int) (*LDBDatabase, error) {
 		handles = 16
 	}
 	glog.V(logger.Info).Infof("Allotted %dMB cache and %d file handles to %s", cache, handles, file)
+	glog.D(logger.Info).Infof("Allotted %s cache and %s file handles to %s", logger.ColorGreen(strconv.Itoa(cache)+"MB"), logger.ColorGreen(strconv.Itoa(handles)), logger.ColorGreen(file))
 
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(file, &opt.Options{

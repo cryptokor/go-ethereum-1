@@ -141,7 +141,7 @@ var (
 
 	// logging and debug settings
 	PrettyFlag = cli.BoolFlag{
-		Name: "pretty",
+		Name:  "pretty",
 		Usage: "Use pretty defaults for logging (verbosity=1,vmodule='cmd/geth/*=3',verbosity-trace-floor=5,log-status='sync=15')",
 	}
 	VerbosityFlag = cli.GenericFlag{
@@ -155,7 +155,7 @@ var (
 		Value: glog.GetVModule(),
 	}
 	VerbosityTraceFloorFlag = cli.IntFlag{
-		Name: "verbosity-trace-floor",
+		Name:  "verbosity-trace-floor",
 		Usage: "Floor verbosity level at which to include file traces on log lines.",
 		Value: 0,
 	}

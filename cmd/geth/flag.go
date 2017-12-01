@@ -520,6 +520,7 @@ func mustRegisterMLogsFromContext(ctx *cli.Context) {
 		glog.Fatalf("Failed to start machine log: %v", e)
 	}
 	glog.V(logger.Info).Infof("Machine logs file: %v", fname)
+	glog.D(logger.Info).Infof("Machine logs (mlog) file: %v", logger.ColorGreen(fname))
 }
 
 // MakeSystemNode sets up a local node, configures the services to launch and
@@ -806,31 +807,38 @@ func mustMakeSufficientChainConfig(ctx *cli.Context) *core.SufficientChainConfig
 }
 
 func logChainConfiguration(ctx *cli.Context, config *core.SufficientChainConfig) {
-
-	glog.D(logger.Info).Infoln("i.infoln hello world, i'm only printing to stderr, not to file; v=", "info", 3)
-	glog.D(logger.Error).Infoln("e.infoln hello world, i'm only printing to stderr, not to file; v=", "error", 1)
-	glog.D(logger.Warn).Warnln("w.warnln hello world, i'm only printing to stderr, not to file; v=", "error", 1)
-	glog.D(logger.Warn).Errorln("w.errorln hello world, i'm only printing to stderr, not to file; v=", "error", 1)
-
 	chainIdentity := mustMakeChainIdentity(ctx)
 	chainIsCustom := !(chainIdentitiesMain[chainIdentity] || chainIdentitiesMorden[chainIdentity])
+
+	// File logs.
+	// TODO: uglify V logs? provide more detail for debugging? normal users won't see this.
 	if chainIsCustom {
-		glog.V(logger.Info).Infof("Using custom chain configuration: \x1b[32m%s\x1b[39m", chainIdentity)
+		glog.V(logger.Info).Infof("Using custom chain configuration: %s", chainIdentity)
+		glog.D(logger.Info).Infof("Custom chain config: %s", logger.ColorGreen(chainIdentity))
 	}
 
 	glog.V(logger.Info).Info(glog.Separator("-"))
 
-	glog.V(logger.Info).Infof("Starting Geth Classic \x1b[32m%s\x1b[39m", ctx.App.Version)
-	glog.V(logger.Info).Infof("Geth is configured to use ETC blockchain: \x1b[32m%v\x1b[39m", config.Name)
-	glog.V(logger.Info).Infof("Using chain database at: \x1b[32m%s\x1b[39m", MustMakeChainDataDir(ctx)+"/chaindata")
+	glog.V(logger.Info).Infof("Starting Geth Classic %s", ctx.App.Version)
+	glog.D(logger.Info).Infof("Geth Classic version: %s", logger.ColorGreen(ctx.App.Version))
+
+	glog.V(logger.Info).Infof("Geth is configured to use ETC blockchain: %v", config.Name)
+	glog.D(logger.Info).Infof("ETC blockchain: %s", logger.ColorGreen(config.Name))
+
+	chaindataDirName := MustMakeChainDataDir(ctx) + "/chaindata"
+	glog.V(logger.Info).Infof("Using chain database at: %s", chaindataDirName)
+	glog.D(logger.Info).Infof("Chain database: %s", logger.ColorGreen(chaindataDirName))
 
 	glog.V(logger.Info).Infof("%v blockchain upgrades associated with this configuration:", len(config.ChainConfig.Forks))
+	glog.D(logger.Info).Infof("Blockchain upgrades configured: %s", logger.ColorGreen(strconv.Itoa(len(config.ChainConfig.Forks))))
 
 	for i := range config.ChainConfig.Forks {
-		glog.V(logger.Info).Infof(" %7v %v", config.ChainConfig.Forks[i].Block, config.ChainConfig.Forks[i].Name)
+		f := fmt.Sprintf(" %7v %v", config.ChainConfig.Forks[i].Block, config.ChainConfig.Forks[i].Name)
 		if !config.ChainConfig.Forks[i].RequiredHash.IsEmpty() {
-			glog.V(logger.Info).Infof("         with block %v", config.ChainConfig.Forks[i].RequiredHash.Hex())
+			f += fmt.Sprintf(" (%v)", config.ChainConfig.Forks[i].RequiredHash.Hex())
 		}
+		glog.V(logger.Info).Infoln(f)
+		glog.D(logger.Info).Infoln(f)
 		for _, feat := range config.ChainConfig.Forks[i].Features {
 			glog.V(logger.Debug).Infof("    id: %v", feat.ID)
 			for k, v := range feat.Options {
@@ -840,7 +848,9 @@ func logChainConfiguration(ctx *cli.Context, config *core.SufficientChainConfig)
 	}
 
 	if chainIsCustom {
-		glog.V(logger.Info).Infof("State starting nonce: %v", colorGreen(state.StartingNonce))
+		sn := strconv.Itoa(int(state.StartingNonce))
+		glog.V(logger.Info).Infof("State starting nonce: %s", logger.ColorGreen(sn))
+		glog.D(logger.Info).Infof("State starting nonce: %s", logger.ColorGreen(sn))
 	}
 
 	glog.V(logger.Info).Info(glog.Separator("-"))

@@ -95,7 +95,7 @@ var (
 		`,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
-				Name: "fast",
+				Name:  "fast",
 				Usage: "Unset current full sync head, enabling fast sync",
 			},
 		},

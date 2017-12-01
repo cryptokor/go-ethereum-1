@@ -233,32 +233,24 @@ func withLineBreak(s string) string {
 	return s + "\n"
 }
 
-func colorGreen(s interface{}) string {
-	return fmt.Sprintf("\x1b[32m%v\x1b[39m", s)
-}
-
-func colorBlue(s interface{}) string {
-	return fmt.Sprintf("\x1b[36m%v\x1b[39m", s)
-}
-
 func formatStatusKeyValue(prefix string, ss ...interface{}) (s string) {
 
 	s = ""
 	// Single arg; category? ie Forks?
 	if len(ss) == 1 {
-		s += colorBlue(ss[0])
+		s += logger.ColorBlue(fmt.Sprintf("%v", ss[0]))
 	}
 	if len(ss) == 2 {
 		if ss[0] == "" {
-			s += fmt.Sprintf("%v", colorGreen(ss[1]))
+			s += fmt.Sprintf("%v", logger.ColorGreen(fmt.Sprintf("%v", ss[1])))
 		} else {
-			s += fmt.Sprintf("%v: %v", ss[0], colorGreen(ss[1]))
+			s += fmt.Sprintf("%v: %v", ss[0], logger.ColorGreen(fmt.Sprintf("%v", ss[1])))
 		}
 	}
 	if len(ss) > 2 {
 		s += fmt.Sprintf("%v:", ss[0])
 		for i := 2; i < len(ss); i++ {
-			s += withLineBreak(fmt.Sprintf("    %v", colorGreen(ss[i])))
+			s += withLineBreak(fmt.Sprintf("    %v", logger.ColorGreen(fmt.Sprintf("%v", ss[i]))))
 		}
 	}
 
@@ -528,7 +520,7 @@ func status(ctx *cli.Context) error {
 	for _, p := range printme {
 		s += withLineBreak(sep)
 		// right align category title
-		s += withLineBreak(strings.Repeat(" ", len(sep)-len(p.title)) + colorBlue(p.title))
+		s += withLineBreak(strings.Repeat(" ", len(sep)-len(p.title)) + logger.ColorBlue(p.title))
 		for _, v := range p.keyVals {
 			s += v
 		}
@@ -546,7 +538,7 @@ func status(ctx *cli.Context) error {
 	s = "\n"
 	s += withLineBreak(sep)
 	title := "Chain database status"
-	s += withLineBreak(strings.Repeat(" ", len(sep)-len(title)) + colorBlue(title))
+	s += withLineBreak(strings.Repeat(" ", len(sep)-len(title)) + logger.ColorBlue(title))
 	for _, v := range formatChainDataPretty(datadir, chaindata) {
 		s += v
 	}
@@ -786,6 +778,7 @@ var availableLogStatusFeatures = map[string]LogStatusFeatAvailability{
 }
 
 type lsMode int
+
 const (
 	lsModeDiscover lsMode = iota
 	lsModeFullSync
@@ -882,7 +875,7 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			// Discover -> not synchronising (searching for peers)
 			// FullSync/FastSync -> synchronising
 			// Import -> synchronising, at full height
-			fOfHeight := fmt.Sprintf(" / %7d", height)
+			fOfHeight := fmt.Sprintf("/ %7d", height)
 
 			// Calculate and format percent sync of known height
 			heightRatio := float64(current) / float64(height)
@@ -903,12 +896,12 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			importMode := lenPeers > 0 && lsMode == lsModeDiscover && current >= height && !(current == 0 && height == 0)
 			if importMode {
 				lsMode = lsModeImport
-				fOfHeight = strings.Repeat(" ", 12)
-				fHeightRatio = strings.Repeat(" ", 7)
+				fOfHeight = ""    // strings.Repeat(" ", 12)
+				fHeightRatio = "" // strings.Repeat(" ", 7)
 			}
 			if height == 0 {
-				fOfHeight = strings.Repeat(" ", 12)
-				fHeightRatio = strings.Repeat(" ", 7)
+				fOfHeight = ""    // strings.Repeat(" ", 12)
+				fHeightRatio = "" // strings.Repeat(" ", 7)
 			}
 
 			// Calculate block stats for interval
@@ -922,9 +915,10 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 
 			// 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
 			var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // len 13
-			var dominoGraph = "\x1b[32m" // set color
+			var dominoGraph string
+			var nDom int
 			if numBlocksDiff > 0 && numBlocksDiff != current {
-				for i := lastLoggedBlockNumber+1; i <= current; i++ {
+				for i := lastLoggedBlockNumber + 1; i <= current; i++ {
 					b := blockchain.GetBlockByNumber(i)
 					if b != nil {
 						txLen := b.Transactions().Len()
@@ -935,14 +929,20 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 						if lsMode == lsModeImport {
 							if txLen > len(dominoes)-1 {
 								// prevent slice out of bounds
-								txLen = len(dominoes)-1
+								txLen = len(dominoes) - 1
 							}
-							dominoGraph += dominoes[txLen]
+							if nDom <= 20 {
+								dominoGraph += dominoes[txLen]
+							}
+							nDom++
 						}
 					}
 				}
+				if nDom > 20 {
+					dominoGraph += "…"
+				}
 			}
-			dominoGraph += "\x1b[33m" // reset color
+			dominoGraph = logger.ColorGreen(dominoGraph)
 
 			// Convert to per-second stats
 			// FIXME(?): Some degree of rounding will happen.
@@ -971,24 +971,26 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			cbhexstart := currentBlockHex[2:5] // trim off '0x' prefix
 			cbhexend := currentBlockHex[(len(currentBlockHex) - 3):]
 
-			blockprogress := fmt.Sprintf("#%7d%s", current, fOfHeight)
-			cbhexdisplay := fmt.Sprintf("%s…%s", cbhexstart, cbhexend)
-			peersdisplay := fmt.Sprintf("%2d/%2d peers", lenPeers, maxPeers)
+			localHeadHeight := fmt.Sprintf("#%7d", current)
+			localHeadHex := fmt.Sprintf("%s…%s", cbhexstart, cbhexend)
+			peersOfMax := fmt.Sprintf("%2d/%2d peers", lenPeers, maxPeers)
+			domOrHeight := fOfHeight + " " + fHeightRatio
 			var blocksprocesseddisplay string
 			if lsMode != lsModeImport {
-				blocksprocesseddisplay = fmt.Sprintf("~%4d blks %4d txs %2d mgas  /sec ", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI)
+				blocksprocesseddisplay = fmt.Sprintf("~%4d blks %4d txs %2d mgas  /sec", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI)
 			} else {
-				blocksprocesseddisplay = fmt.Sprintf("+%4d blks %4d txs %8d mgas ", numBlocksDiff, numTxsDiff, mGas.Uint64())
+				blocksprocesseddisplay = fmt.Sprintf("+%4d blks %4d txs %8d mgas", numBlocksDiff, numTxsDiff, mGas.Uint64())
+				domOrHeight = dominoGraph
 			}
 
 			// Log to ERROR.
 			// This allows maximum user optionality for desired integration with rest of event-based logging.
-			glog.V(logger.Error).Infof("STATUS SYNC %s %s %s %s %s %s %s", lsModeName[lsMode], blockprogress, fHeightRatio, cbhexdisplay, blocksprocesseddisplay, peersdisplay, dominoGraph)
+			glog.D(logger.Error).Infof("SYNC %s %s %s %s %s %s", lsModeName[lsMode], localHeadHeight, localHeadHex, blocksprocesseddisplay, peersOfMax, domOrHeight)
 
 		case <-sigc:
 			// Listen for interrupt
 			ticker.Stop()
-			glog.V(logger.Debug).Infoln("STATUS SYNC Stopping logging.")
+			glog.D(logger.Info).Errorln("SYNC Stopping.")
 			return
 		}
 	}

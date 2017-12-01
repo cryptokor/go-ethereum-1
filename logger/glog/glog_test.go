@@ -109,14 +109,13 @@ func TestInfoDepth(t *testing.T) {
 	InfoDepth(0, "depth-test0")
 	f()
 
-
 	msgs := strings.Split(strings.TrimSuffix(contents(infoLog), "\n"), "\n")
 	if len(msgs) != 2 {
 		t.Fatalf("Got %d lines, expected 2", len(msgs))
 	}
 
 	for i, m := range msgs {
-		if !strings.HasPrefix(m, severityColor[infoLog] + "I") {
+		if !strings.HasPrefix(m, severityColor[infoLog]+"I") {
 			t.Errorf("InfoDepth[%d] has wrong character: %q", i, m)
 		}
 		w := fmt.Sprintf("depth-test%d", i)
