@@ -115,7 +115,7 @@ const (
 
 const severityChar = "IWEF"
 
-const severityColorReset = "\x1b[39m" // reset both foreground and background
+const severityColorReset = "\x1b[39m"                                                // reset both foreground and background
 var severityColor = []string{severityColorReset, "\x1b[33m", "\x1b[31m", "\x1b[35m"} // info:reset warn:yellow, error:red, fatal:magenta
 
 var severityName = []string{
@@ -460,8 +460,16 @@ type flushSyncWriter interface {
 	io.Writer
 }
 
+type logTName string
+
+const (
+	fileLog    logTName = "file"
+	displayLog logTName = "display"
+)
+
 // loggingT collects all the global state of the logging setup.
 type loggingT struct {
+	logTName
 	// Boolean flags. Not handled atomically because the flag.Value interface
 	// does not let us avoid the =true, and that shorthand is necessary for
 	// compatibility. TODO: does this matter enough to fix? Seems unlikely.
@@ -532,6 +540,7 @@ func init() {
 	//flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	//flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 
+	logging.logTName = fileLog
 	// Default stderrThreshold is ERROR.
 	logging.stderrThreshold = errorLog
 	// Establish defaults for trace thresholds.
@@ -541,6 +550,7 @@ func init() {
 	logging.setVState(3, nil, false)
 	go logging.flushDaemon()
 
+	display.logTName = displayLog
 	display.stderrThreshold = errorLog
 	// toStderr makes it ONLY print to stderr, not to file
 	display.toStderr = true
@@ -559,7 +569,7 @@ func Flush() {
 // traceThreshold determines the arbitrary level for log lines to be printed
 // with caller trace information in the header.
 func (l *loggingT) traceThreshold(s severity) bool {
-	return s >= logging.severityTraceThreshold || l.verbosity >= l.verbosityTraceThreshold
+	return s >= l.severityTraceThreshold || l.verbosity >= l.verbosityTraceThreshold
 }
 
 // GetVTraceThreshold gets the current verbosity trace threshold for logging.
@@ -692,9 +702,15 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 	buf.twoDigits(9, minute)
 	buf.tmp[11] = ':'
 	buf.twoDigits(12, second)
-	buf.tmp[14] = '.'
-	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-	buf.Write(buf.tmp[:21])
+	// Only keep nanoseconds for file logs
+	if l.logTName == fileLog {
+		buf.tmp[14] = '.'
+		buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
+		buf.Write(buf.tmp[:21])
+	} else {
+		buf.Write(buf.tmp[:14])
+	}
+
 	buf.WriteString(severityColorReset + " ")
 	if l.traceThreshold(s) {
 		buf.WriteString(file)
@@ -1281,8 +1297,6 @@ func (v Verbose) Errorf(format string, args ...interface{}) {
 		logging.printfmt(errorLog, format, args...)
 	}
 }
-
-
 
 // Separator creates a line, ie ---------------------------------
 func Separator(iterable string) string {
