@@ -848,15 +848,16 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 	if interval != "" {
 		i, e := strconv.Atoi(interval)
 		if e != nil {
-			glog.Fatalf("STATUS SYNC %v: could not parse argument: %v", e, interval)
+			glog.Fatalf("SYNC %v: could not parse argument: %v", e, interval)
 		}
 		if i < 1 {
-			glog.Fatalf("STATUS SYNC interval value must be a positive integer, got: %d", i)
+			glog.Fatalf("SYNC interval value must be a positive integer, got: %d", i)
 		}
 		intervalI = i
 	}
 
-	glog.V(logger.Info).Infof("STATUS SYNC Log interval set: %d seconds", intervalI)
+	glog.V(logger.Info).Infof("Rolling SYNC log interval set: %d seconds", intervalI)
+	glog.D(logger.Warn).Warnf("Rolling SYNC status logs set to every %d seconds. You can adjust this with the --%s flag.", intervalI, LogStatusFlag.Name)
 
 	tickerInterval := time.Second * time.Duration(int32(intervalI))
 	ticker := time.NewTicker(tickerInterval)

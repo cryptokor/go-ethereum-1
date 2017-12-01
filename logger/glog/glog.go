@@ -115,8 +115,8 @@ const (
 
 const severityChar = "IWEF"
 
-const severityColorReset = "\x1b[39m"                                                // reset both foreground and background
-var severityColor = []string{severityColorReset, "\x1b[33m", "\x1b[31m", "\x1b[35m"} // info:reset warn:yellow, error:red, fatal:magenta
+const severityColorReset = "\x1b[0m"                                                // reset both foreground and background
+var severityColor = []string{"\x1b[2m", "\x1b[33m", "\x1b[31m", "\x1b[35m"} // info:dim warn:yellow, error:red, fatal:magenta
 
 var severityName = []string{
 	infoLog:    "INFO",
@@ -142,6 +142,10 @@ func trimToImportPath(file string) string {
 // SetV sets the global verbosity level
 func SetV(v int) {
 	logging.verbosity.set(Level(v))
+}
+
+func SetD(v int) {
+	display.verbosity.set(Level(v))
 }
 
 // SetToStderr sets the global output style
@@ -692,25 +696,33 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 	// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
 
 	//buf.nDigits(8, 0, severityColor[s],'')
-	buf.WriteString(severityColor[s])
-	buf.tmp[0] = severityChar[s]
-	buf.twoDigits(1, int(month))
-	buf.twoDigits(3, day)
-	buf.tmp[5] = ' '
-	buf.twoDigits(6, hour)
-	buf.tmp[8] = ':'
-	buf.twoDigits(9, minute)
-	buf.tmp[11] = ':'
-	buf.twoDigits(12, second)
+	if l.logTName == displayLog {
+		buf.WriteString(severityColor[s])
+		buf.tmp[0] = severityChar[s]
+		buf.Write(buf.tmp[:1])
+		buf.WriteString(severityColorReset)
+		// Write dim for rest of line, eg. date and time
+		buf.WriteString(severityColor[infoLog])
+	} else {
+		buf.tmp[0] = severityChar[s]
+		buf.Write(buf.tmp[:1])
+	}
+	buf.twoDigits(0, int(month))
+	buf.twoDigits(2, day)
+	buf.tmp[4] = ' '
+	buf.twoDigits(5, hour)
+	buf.tmp[7] = ':'
+	buf.twoDigits(8, minute)
+	buf.tmp[10] = ':'
+	buf.twoDigits(11, second)
 	// Only keep nanoseconds for file logs
 	if l.logTName == fileLog {
-		buf.tmp[14] = '.'
-		buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-		buf.Write(buf.tmp[:21])
+		buf.tmp[13] = '.'
+		buf.nDigits(6, 14, now.Nanosecond()/1000, '0')
+		buf.Write(buf.tmp[:20])
 	} else {
-		buf.Write(buf.tmp[:14])
+		buf.Write(buf.tmp[:13])
 	}
-
 	buf.WriteString(severityColorReset + " ")
 	if l.traceThreshold(s) {
 		buf.WriteString(file)

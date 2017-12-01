@@ -239,7 +239,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	} else {
 		genName = "custom"
 	}
-	glog.V(logger.Info).Infof("Successfully established %s genesis block: %s", genName, logger.ColorGreen(genesis.Hash().Hex()))
+	glog.V(logger.Info).Infof("Successfully established %s genesis block: %s", genName, genesis.Hash().Hex())
 	glog.D(logger.Info).Infof("Genesis block: %s (%s)", logger.ColorGreen(genesis.Hash().Hex()), genName)
 
 	if config.ChainConfig == nil {

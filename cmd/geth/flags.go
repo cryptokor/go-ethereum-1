@@ -140,9 +140,9 @@ var (
 	}
 
 	// logging and debug settings
-	PrettyFlag = cli.BoolFlag{
-		Name:  "pretty",
-		Usage: "Use pretty defaults for logging (verbosity=1,vmodule='cmd/geth/*=3',verbosity-trace-floor=5,log-status='sync=15')",
+	NeckbeardFlag = cli.BoolFlag{
+		Name:  "neckbeard",
+		Usage: "Use verbose->stderr defaults for logging (verbosity=5,log-status='sync=60')",
 	}
 	VerbosityFlag = cli.GenericFlag{
 		Name:  "verbosity",
@@ -167,7 +167,7 @@ var (
 	LogStatusFlag = cli.StringFlag{
 		Name:  "log-status",
 		Usage: `Toggle interval-based STATUS logs: comma-separated list of <pattern>=<interval>`,
-		Value: "sync=15",
+		Value: "sync=30",
 	}
 	MLogFlag = cli.StringFlag{
 		Name:  "mlog",

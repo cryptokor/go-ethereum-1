@@ -136,7 +136,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "LOGGING AND DEBUGGING",
 		Flags: []cli.Flag{
-			PrettyFlag,
+			NeckbeardFlag,
 			VerbosityFlag,
 			VModuleFlag,
 			VerbosityTraceFloorFlag,
