@@ -227,17 +227,16 @@ func makeCLIApp() (app *cli.App) {
 
 		glog.CopyStandardLogTo("INFO")
 
-		if ctx.GlobalIsSet(aliasableName(LogDirFlag.Name, ctx)) {
-			if p := ctx.GlobalString(aliasableName(LogDirFlag.Name, ctx)); p != "" {
-				if e := os.MkdirAll(p, os.ModePerm); e != nil {
-					return e
-				}
-				glog.SetLogDir(p)
-				glog.SetAlsoToStderr(true)
-			}
-		} else {
-			glog.SetToStderr(true)
+		// Set up file logging.
+		logDir := filepath.Join(MustMakeChainDataDir(ctx), "log")
+		if e := os.MkdirAll(logDir, os.ModePerm); e != nil {
+			return e
 		}
+		// Turn on only file logging, disabling logging(T).toStderr and logging(T).alsoToStdErr
+		glog.SetLogDir(logDir)
+		glog.SetToStderr(false)
+		glog.SetAlsoToStderr(false)
+
 
 		if ctx.GlobalBool(PrettyFlag.Name) {
 			// Allow manual overrides

@@ -807,6 +807,11 @@ func mustMakeSufficientChainConfig(ctx *cli.Context) *core.SufficientChainConfig
 
 func logChainConfiguration(ctx *cli.Context, config *core.SufficientChainConfig) {
 
+	glog.D(logger.Info).Infoln("i.infoln hello world, i'm only printing to stderr, not to file; v=", "info", 3)
+	glog.D(logger.Error).Infoln("e.infoln hello world, i'm only printing to stderr, not to file; v=", "error", 1)
+	glog.D(logger.Warn).Warnln("w.warnln hello world, i'm only printing to stderr, not to file; v=", "error", 1)
+	glog.D(logger.Warn).Errorln("w.errorln hello world, i'm only printing to stderr, not to file; v=", "error", 1)
+
 	chainIdentity := mustMakeChainIdentity(ctx)
 	chainIsCustom := !(chainIdentitiesMain[chainIdentity] || chainIdentitiesMorden[chainIdentity])
 	if chainIsCustom {

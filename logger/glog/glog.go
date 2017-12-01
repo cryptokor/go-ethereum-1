@@ -460,29 +460,6 @@ type flushSyncWriter interface {
 	io.Writer
 }
 
-func init() {
-	//flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
-	//flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
-	//flag.Var(&logging.verbosity, "v", "log level for V logs")
-	//flag.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
-	//flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
-	//flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
-
-	// Default stderrThreshold is ERROR.
-	logging.stderrThreshold = errorLog
-	// Establish defaults for trace thresholds.
-	logging.verbosityTraceThreshold.set(0)
-	logging.severityTraceThreshold.set(2)
-	// Default for verbosity.
-	logging.setVState(3, nil, false)
-	go logging.flushDaemon()
-}
-
-// Flush flushes all pending log I/O.
-func Flush() {
-	logging.lockAndFlushAll()
-}
-
 // loggingT collects all the global state of the logging setup.
 type loggingT struct {
 	// Boolean flags. Not handled atomically because the flag.Value interface
@@ -545,6 +522,39 @@ type buffer struct {
 }
 
 var logging loggingT
+var display loggingT
+
+func init() {
+	//flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
+	//flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
+	//flag.Var(&logging.verbosity, "v", "log level for V logs")
+	//flag.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
+	//flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
+	//flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
+
+	// Default stderrThreshold is ERROR.
+	logging.stderrThreshold = errorLog
+	// Establish defaults for trace thresholds.
+	logging.verbosityTraceThreshold.set(0)
+	logging.severityTraceThreshold.set(2)
+	// Default for verbosity.
+	logging.setVState(3, nil, false)
+	go logging.flushDaemon()
+
+	display.stderrThreshold = errorLog
+	// toStderr makes it ONLY print to stderr, not to file
+	display.toStderr = true
+	display.verbosityTraceThreshold.set(5)
+	display.severityTraceThreshold.set(3) // only for Fatal logs
+	display.setVState(3, nil, false)
+	go display.flushDaemon()
+}
+
+// Flush flushes all pending log I/O.
+func Flush() {
+	logging.lockAndFlushAll()
+	display.lockAndFlushAll()
+}
 
 // traceThreshold determines the arbitrary level for log lines to be printed
 // with caller trace information in the header.
@@ -572,20 +582,20 @@ func SetVTraceThreshold(v int) {
 // l.mu is held.
 func (l *loggingT) setVState(verbosity Level, filter []modulePat, setFilter bool) {
 	// Turn verbosity off so V will not fire while we are in transition.
-	logging.verbosity.set(0)
+	l.verbosity.set(0)
 	// Ditto for filter length.
-	atomic.StoreInt32(&logging.filterLength, 0)
+	atomic.StoreInt32(&l.filterLength, 0)
 
 	// Set the new filters and wipe the pc->Level map if the filter has changed.
 	if setFilter {
-		logging.vmodule.filter = filter
-		logging.vmap = make(map[uintptr]Level)
+		l.vmodule.filter = filter
+		l.vmap = make(map[uintptr]Level)
 	}
 
 	// Things are consistent now, so enable filtering and verbosity.
 	// They are enabled in order opposite to that in V.
-	atomic.StoreInt32(&logging.filterLength, int32(len(filter)))
-	logging.verbosity.set(verbosity)
+	atomic.StoreInt32(&l.filterLength, int32(len(filter)))
+	l.verbosity.set(verbosity)
 }
 
 // getBuffer returns a new, ready-to-use buffer.
@@ -1089,6 +1099,7 @@ func (l *loggingT) setV(pc uintptr) Level {
 // Verbose is a boolean type that implements Infof (like Printf) etc.
 // See the documentation of V for more information.
 type Verbose bool
+type Displayable bool
 
 // V reports whether verbosity at the call site is at least the requested level.
 // The returned value is a boolean of type Verbose, which implements Info, Infoln
@@ -1130,6 +1141,70 @@ func V(level Level) Verbose {
 		return Verbose(v >= level)
 	}
 	return Verbose(false)
+}
+
+func D(level Level) Displayable {
+	// This function tries hard to be cheap unless there's work to do.
+	// The fast path is two atomic loads and compares.
+
+	// Here is a cheap but safe test to see if V logging is enabled globally.
+	if display.verbosity.get() >= level {
+		return Displayable(true)
+	}
+	// It's off globally but it vmodule may still be set.
+	// Here is another cheap but safe test to see if vmodule is enabled.
+	if atomic.LoadInt32(&display.filterLength) > 0 {
+		// Now we need a proper lock to use the logging structure. The pcs field
+		// is shared so we must lock before accessing it. This is fairly expensive,
+		// but if V logging is enabled we're slow anyway.
+		display.mu.Lock()
+		defer display.mu.Unlock()
+		if runtime.Callers(2, display.pcs[:]) == 0 {
+			return Displayable(false)
+		}
+		v, ok := display.vmap[logging.pcs[0]]
+		if !ok {
+			v = display.setV(logging.pcs[0])
+		}
+		return Displayable(v >= level)
+	}
+	return Displayable(false)
+}
+
+func (d Displayable) Infoln(args ...interface{}) {
+	if d {
+		display.println(infoLog, args...)
+	}
+}
+
+func (d Displayable) Infof(format string, args ...interface{}) {
+	if d {
+		display.printfmt(infoLog, format, args...)
+	}
+}
+
+func (d Displayable) Warn(args ...interface{}) {
+	if d {
+		display.print(warningLog, args...)
+	}
+}
+
+func (d Displayable) Warnln(args ...interface{}) {
+	if d {
+		display.println(warningLog, args...)
+	}
+}
+
+func (d Displayable) Errorln(args ...interface{}) {
+	if d {
+		display.println(errorLog, args...)
+	}
+}
+
+func (d Displayable) Errorf(format string, args ...interface{}) {
+	if d {
+		display.printfmt(errorLog, format, args...)
+	}
 }
 
 // INFO
