@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"reflect"
+	"strconv"
 
 	"github.com/ethereumproject/go-ethereum/common"
 	"github.com/ethereumproject/go-ethereum/core/state"
@@ -688,6 +689,18 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	glog.V(logger.Warn).Infof("Last header: #%d [%x…] TD=%v", self.hc.CurrentHeader().Number, self.hc.CurrentHeader().Hash().Bytes()[:4], headerTd)
 	glog.V(logger.Warn).Infof("Last block: #%d [%x…] TD=%v", self.currentBlock.Number(), self.currentBlock.Hash().Bytes()[:4], blockTd)
 	glog.V(logger.Warn).Infof("Fast block: #%d [%x…] TD=%v", self.currentFastBlock.Number(), self.currentFastBlock.Hash().Bytes()[:4], fastTd)
+	glog.D(logger.Warn).Infof("Local head header: #%s [%s…] TD=%s",
+		logger.ColorGreen(strconv.Itoa(int(self.hc.CurrentHeader().Number.Uint64()))),
+		logger.ColorGreen(self.hc.CurrentHeader().Hash().Hex()[:8]),
+		logger.ColorGreen(strconv.Itoa(int(headerTd.Uint64()))))
+	glog.D(logger.Warn).Infof("Local head full block: #%s [%s…] TD=%s",
+		logger.ColorGreen(strconv.Itoa(int(self.currentBlock.Number().Uint64()))),
+		logger.ColorGreen(self.currentBlock.Hash().Hex()[:8]),
+		logger.ColorGreen(strconv.Itoa(int(blockTd.Uint64()))))
+	glog.D(logger.Warn).Infof("Local head fast block: #%s [%s…] TD=%s",
+		logger.ColorGreen(strconv.Itoa(int(self.currentFastBlock.Number().Uint64()))),
+		logger.ColorGreen(self.currentFastBlock.Hash().Hex()[:8]),
+		logger.ColorGreen(strconv.Itoa(int(fastTd.Uint64()))))
 
 	return nil
 }

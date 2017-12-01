@@ -1199,15 +1199,15 @@ func (d Displayable) Infof(format string, args ...interface{}) {
 	}
 }
 
-func (d Displayable) Warn(args ...interface{}) {
-	if d {
-		display.print(warningLog, args...)
-	}
-}
-
 func (d Displayable) Warnln(args ...interface{}) {
 	if d {
 		display.println(warningLog, args...)
+	}
+}
+
+func (d Displayable) Warnf(format string, args ...interface{}) {
+	if d {
+		display.printfmt(warningLog, format, args...)
 	}
 }
 
