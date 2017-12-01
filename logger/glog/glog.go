@@ -1288,6 +1288,8 @@ func (v Verbose) Errorln(args ...interface{}) {
 	if v {
 		logging.println(errorLog, args...)
 	}
+	// always print errors to display
+	display.println(errorLog, args...)
 }
 
 // Errorf is equivalent to the global Errorf function, guarded by the value of v.
@@ -1296,6 +1298,7 @@ func (v Verbose) Errorf(format string, args ...interface{}) {
 	if v {
 		logging.printfmt(errorLog, format, args...)
 	}
+	display.printfmt(errorLog, format, args...)
 }
 
 // Separator creates a line, ie ---------------------------------
