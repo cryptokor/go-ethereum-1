@@ -551,7 +551,7 @@ func init() {
 	logging.verbosityTraceThreshold.set(0)
 	logging.severityTraceThreshold.set(2)
 	// Default for verbosity.
-	logging.setVState(3, nil, false)
+	logging.setVState(5, nil, false)
 	go logging.flushDaemon()
 
 	display.logTName = displayLog
@@ -696,16 +696,15 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 	// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
 
 	//buf.nDigits(8, 0, severityColor[s],'')
+	buf.WriteString(severityColor[s])
+	buf.tmp[0] = severityChar[s]
+	buf.Write(buf.tmp[:1])
 	if l.logTName == displayLog {
-		buf.WriteString(severityColor[s])
-		buf.tmp[0] = severityChar[s]
-		buf.Write(buf.tmp[:1])
 		buf.WriteString(severityColorReset)
 		// Write dim for rest of line, eg. date and time
 		buf.WriteString(severityColor[infoLog])
 	} else {
-		buf.tmp[0] = severityChar[s]
-		buf.Write(buf.tmp[:1])
+		buf.WriteString(severityColorReset)
 	}
 	buf.twoDigits(0, int(month))
 	buf.twoDigits(2, day)
@@ -722,8 +721,9 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 		buf.Write(buf.tmp[:20])
 	} else {
 		buf.Write(buf.tmp[:13])
+		buf.WriteString(severityColorReset)
 	}
-	buf.WriteString(severityColorReset + " ")
+	buf.WriteString(" ")
 	if l.traceThreshold(s) {
 		buf.WriteString(file)
 		buf.tmp[0] = ':'
