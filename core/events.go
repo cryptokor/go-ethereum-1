@@ -19,10 +19,11 @@ package core
 import (
 	"math/big"
 
+	"time"
+
 	"github.com/ethereumproject/go-ethereum/common"
 	"github.com/ethereumproject/go-ethereum/core/types"
 	"github.com/ethereumproject/go-ethereum/core/vm"
-	"time"
 )
 
 // TxPreEvent is posted when a transaction enters the transaction pool.
@@ -75,13 +76,24 @@ type PendingBlockEvent struct {
 }
 
 type ChainInsertEvent struct {
-	Processed int
-	Queued    int
-	Ignored   int
-	TxCount int
+	Processed       int
+	Queued          int
+	Ignored         int
+	TxCount         int
+	LastNumber      uint64
+	LastHash        common.Hash
+	Elasped         time.Duration
+	LatestBlockTime time.Time
+}
+
+type HeaderChainInsertEvent struct {
+	Processed  int
+	Queued     int
+	Ignored    int
+	TxCount    int
 	LastNumber uint64
-	LastHash common.Hash
-	Elasped time.Duration
+	LastHash   common.Hash
+	Elasped    time.Duration
 }
 
 // TODO: no usages found in project files

@@ -268,7 +268,7 @@ func (d *Downloader) GetPeers() *peerSet {
 
 // RegisterPeer injects a new download peer into the set of block source to be
 // used for fetching hashes and blocks from.
-func (d *Downloader) RegisterPeer(id string, version int, currentHead currentHeadRetrievalFn,
+func (d *Downloader) RegisterPeer(id string, version int, name string, currentHead currentHeadRetrievalFn,
 	getRelHeaders relativeHeaderFetcherFn, getAbsHeaders absoluteHeaderFetcherFn, getBlockBodies blockBodyFetcherFn,
 	getReceipts receiptFetcherFn, getNodeData stateFetcherFn) error {
 
@@ -284,7 +284,7 @@ func (d *Downloader) RegisterPeer(id string, version int, currentHead currentHea
 	}()
 
 	glog.V(logger.Detail).Infoln("Registering peer", id)
-	err = d.peers.Register(newPeer(id, version, currentHead, getRelHeaders, getAbsHeaders, getBlockBodies, getReceipts, getNodeData))
+	err = d.peers.Register(newPeer(id, version, name, currentHead, getRelHeaders, getAbsHeaders, getBlockBodies, getReceipts, getNodeData))
 	if err != nil {
 		glog.V(logger.Error).Errorf("Register failed:", err)
 		return err
@@ -581,7 +581,7 @@ func (d *Downloader) Terminate() {
 // fetchHeight retrieves the head header of the remote peer to aid in estimating
 // the total time a pending synchronisation would take.
 func (d *Downloader) fetchHeight(p *peer) (*types.Header, error) {
-	glog.V(logger.Debug).Infof("Peer %s: retrieving remote chain height", p.id)
+	glog.V(logger.Debug).Infof("%v: retrieving remote chain height", p)
 
 	// Request the advertised remote head block and wait for the response
 	head, _ := p.currentHead()
@@ -600,20 +600,19 @@ func (d *Downloader) fetchHeight(p *peer) (*types.Header, error) {
 		case packet := <-d.headerCh:
 			// Discard anything not from the origin peer
 			if packet.PeerId() != p.id {
-				glog.V(logger.Debug).Warnf("Received headers from incorrect peer(%s)", packet.PeerId())
+				glog.V(logger.Debug).Infof("Received headers from incorrect peer(%s)", packet.PeerId())
 				break
 			}
 			// Make sure the peer actually gave something valid
 			headers := packet.(*headerPack).headers
 			if len(headers) != 1 {
-				glog.V(logger.Debug).Errorf("%v: invalid number of head headers: %d != 1", p, len(headers))
+				glog.V(logger.Debug).Infof("%v: invalid number of head headers: %d != 1", p, len(headers))
 				return nil, errBadPeer
 			}
-			glog.V(logger.Detail).Infof("Peer %s: got remote chain height: #%d, %s", p.id, headers[0].Number, headers[0].Hash().Hex())
 			return headers[0], nil
 
 		case <-timeout:
-			glog.V(logger.Debug).Errorf("%v: head header timeout", p)
+			glog.V(logger.Debug).Infof("%v: head header timeout", p)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -677,13 +676,13 @@ func (d *Downloader) findAncestor(p *peer, height uint64) (uint64, error) {
 			// Make sure the peer actually gave something valid
 			headers := packet.(*headerPack).headers
 			if len(headers) == 0 {
-				glog.V(logger.Debug).Errorf("%v: empty head header set", p)
+				glog.V(logger.Debug).Warnf("%v: empty head header set", p)
 				return 0, errEmptyHeaderSet
 			}
 			// Make sure the peer's reply conforms to the request
 			for i := 0; i < len(headers); i++ {
 				if number := headers[i].Number.Int64(); number != from+int64(i)*16 {
-					glog.V(logger.Core).Errorf("%v: head header set (item %d) broke chain ordering: requested %d, got %d", p, i, from+int64(i)*16, number)
+					glog.V(logger.Core).Warnf("%v: head header set (item %d) broke chain ordering: requested %d, got %d", p, i, from+int64(i)*16, number)
 					return 0, errInvalidChain
 				}
 			}

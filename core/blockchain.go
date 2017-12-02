@@ -1404,6 +1404,7 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 	defer close(nonceAbort)
 
 	txcount := 0
+	var latestBlockTime time.Time
 	for i, block := range chain {
 		if atomic.LoadInt32(&self.procInterrupt) == 1 {
 			glog.V(logger.Debug).Infoln("Premature abort during block chain processing")
@@ -1500,6 +1501,7 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 		if err != nil {
 			return i, err
 		}
+		latestBlockTime = time.Unix(block.Time().Int64(), 0)
 
 		switch status {
 		case CanonStatTy:
@@ -1540,6 +1542,7 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 			end.NumberU64(),
 			end.Hash(),
 			tend,
+			latestBlockTime,
 		})
 		if logger.MlogEnabled() {
 			mlogBlockchain.Send(mlogBlockchainInsertBlocks.SetDetailValues(

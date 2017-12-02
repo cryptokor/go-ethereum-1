@@ -270,7 +270,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
 	// TODO Causing error in tests
-	if err := pm.downloader.RegisterPeer(p.id, p.version, p.Head,
+	if err := pm.downloader.RegisterPeer(p.id, p.version, p.Name(), p.Head,
 		p.RequestHeadersByHash, p.RequestHeadersByNumber, p.RequestBodies,
 		p.RequestReceipts, p.RequestNodeData); err != nil {
 		return err
@@ -526,7 +526,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
-			glog.V(logger.Core).Errorf("failed to deliver node state data: %v", err)
+			glog.V(logger.Core).Warnf("failed to deliver node state data: %v", err)
 		}
 
 	case p.version >= eth63 && msg.Code == GetReceiptsMsg:
@@ -573,7 +573,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
-			glog.V(logger.Core).Errorf("failed to deliver receipts: %v", err)
+			glog.V(logger.Core).Warnf("failed to deliver receipts: %v", err)
 		}
 
 	case msg.Code == NewBlockHashesMsg:

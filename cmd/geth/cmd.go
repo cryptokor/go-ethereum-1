@@ -933,13 +933,19 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 			// case core.ChainEvent:
 			// 	glog.D(logger.Info).Infof("chainevent time=%v block=%v", e.Time, d.Block.NumberU64())
 			case core.ChainInsertEvent:
-				glog.D(logger.Info).Infof(chainIcon+" Insert processed=%s queued=%s ignored=%s txs=%s lastN=%s lastHash=%s elapsed=%s",
-					greenParenify(fmt.Sprintf("%4d", d.Processed)),
-					greenParenify(fmt.Sprintf("%4d", d.Queued)),
-					greenParenify(fmt.Sprintf("%4d", d.Ignored)),
-					greenParenify(fmt.Sprintf("%4d", d.TxCount)),
-					greenParenify(fmt.Sprintf("%8d", d.LastNumber)),
-					greenParenify(d.LastHash.Hex()[:9]+"…"),
+				// glog.D(logger.Info).Infof(chainIcon+" Insert processed=%s queued=%s ignored=%s txs=%s lastN=%s lastHash=%s lastTime=%s elapsed=%s",
+				// 	greenParenify(fmt.Sprintf("%4d", d.Processed)),
+				// 	greenParenify(fmt.Sprintf("%4d", d.Queued)),
+				// 	greenParenify(fmt.Sprintf("%4d", d.Ignored)),
+				// 	greenParenify(fmt.Sprintf("%4d", d.TxCount)),
+				// 	greenParenify(fmt.Sprintf("%8d", d.LastNumber)),
+				// 	greenParenify(d.LastHash.Hex()[:9]+"…"),
+				// 	greenParenify(fmt.Sprintf("%v ago", time.Since(d.LatestBlockTime))),
+				// 	greenParenify(fmt.Sprintf("%v", d.Elasped)),
+				// )
+				glog.D(logger.Info).Infof(chainIcon+" Insert stats=%s "+logger.ColorGreen("◼︎")+"=%s took=%s",
+					greenParenify(fmt.Sprintf("processed=%4d queued=%4d ignored=%4d txs=%4d", d.Processed, d.Queued, d.Ignored, d.TxCount)),
+					greenParenify(fmt.Sprintf("n=%8d hash=%s… time=%v ago", d.LastNumber, d.LastHash.Hex()[:9], time.Since(d.LatestBlockTime))),
 					greenParenify(fmt.Sprintf("%v", d.Elasped)),
 				)
 				chainEventLastSent = time.Now()
