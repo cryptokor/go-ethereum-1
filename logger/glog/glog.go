@@ -586,7 +586,7 @@ func init() {
 // Flush flushes all pending log I/O.
 func Flush() {
 	logging.lockAndFlushAll()
-	// display.lockAndFlushAll()
+	display.lockAndFlushAll()
 }
 
 // traceThreshold determines the arbitrary level for log lines to be printed

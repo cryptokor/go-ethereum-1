@@ -861,13 +861,13 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 	glog.V(logger.Info).Infof("Rolling SYNC log interval set: %d seconds", intervalI)
 
 	// Only use severity=warn if --log-status not in use (ie using defaults)
-	statIntervalNoticeFn := glog.D(logger.Error).Infof
-	statIntervalNotice := fmt.Sprintf("Rolling SYNC status logs set to every %d seconds. ", intervalI)
 	if !ctx.GlobalIsSet(LogStatusFlag.Name) {
 		statIntervalNotice += fmt.Sprintf("You can adjust this with the --%s flag.", LogStatusFlag.Name)
-		statIntervalNoticeFn = glog.D(logger.Error).Warnf
+		glog.D(logger.Error).Warnln(statIntervalNotice)
+		// statIntervalNoticeFn = glog.D(logger.Error).Warnf
+	} else {
+		glog.D(logger.Error).Infoln(statIntervalNotice)
 	}
-	statIntervalNoticeFn(statIntervalNotice)
 
 	// Set up ticker based on established interval.
 	tickerInterval := time.Second * time.Duration(int32(intervalI))
@@ -913,17 +913,17 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 	}
 	handleDownloaderEvent := func(e interface{}) {
 		s := downloaderIcon + " "
-		f := glog.D(logger.Info).Infoln
 		switch d := e.(type) {
 		case downloader.StartEvent:
 			s += "Start " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]) + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
+			glog.D(logger.Info).Infoln(s)
 		case downloader.DoneEvent:
 			s += "Done  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]) + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
+			glog.D(logger.Info).Infoln(s)
 		case downloader.FailedEvent:
 			s += "Fail  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " err=" + greenParenify(d.Err.Error())
-			f = glog.D(logger.Info).Warnln
+			glog.D(logger.Info).Warnln(s)
 		}
-		f(s)
 	}
 
 	go func() {
