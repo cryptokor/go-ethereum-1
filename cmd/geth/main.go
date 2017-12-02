@@ -318,6 +318,7 @@ func main() {
 func geth(ctx *cli.Context) error {
 	n := MakeSystemNode(Version, ctx)
 	ethe := startNode(ctx, n)
+	n.EventMux()
 
 	if ctx.GlobalString(LogStatusFlag.Name) != "off" {
 		dispatchStatusLogs(ctx, ethe)

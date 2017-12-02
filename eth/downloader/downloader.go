@@ -424,7 +424,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peer, hash common.Hash, td *big.Int) (err error) {
-	d.mux.Post(StartEvent{})
+	d.mux.Post(StartEvent{p, hash, td})
 	defer func() {
 		// reset on error
 		if err != nil {

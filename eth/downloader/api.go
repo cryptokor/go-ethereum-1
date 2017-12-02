@@ -22,10 +22,16 @@ import (
 
 	"github.com/ethereumproject/go-ethereum/event"
 	"github.com/ethereumproject/go-ethereum/rpc"
+	"github.com/ethereumproject/go-ethereum/common"
+	"math/big"
 )
 
 type DoneEvent struct{}
-type StartEvent struct{}
+type StartEvent struct{
+	Peer *peer
+	Hash common.Hash
+	TD *big.Int
+}
 type FailedEvent struct{ Err error }
 
 // PublicDownloaderAPI provides an API which gives information about the current synchronisation status.

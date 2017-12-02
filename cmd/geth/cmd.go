@@ -768,7 +768,6 @@ type LogStatusFeatAvailability int
 const (
 	StatusFeatAvailable LogStatusFeatAvailability = iota
 	StatusFeatRegistered
-	StatusFeatNonexistent
 )
 
 // availableLogStatusFeatures stores state of implemented log STATUS features.
@@ -816,13 +815,18 @@ func dispatchStatusLogs(ctx *cli.Context, ethe *eth.Ethereum) {
 
 		// If possible, split sync=60 into ["sync", "60"], otherwise yields ["sync"], ["60"], or ["someothernonsense"]
 		eqs := strings.Split(p, "=")
+		if len(eqs) < 2 {
+			glog.Errorf("Invalid log status value: %v. Must be comma-separated pairs of module=interval.", eqs)
+			os.Exit(1)
+		}
 
 		// Catch unavailable and duplicate status feature logs
-		if availableLogStatusFeatures[eqs[0]] == StatusFeatNonexistent {
-			glog.Fatalf("%v: %v: unavailable status feature by name of '%v'", flagName, ErrInvalidFlag, eqs[0])
-		}
-		if availableLogStatusFeatures[eqs[0]] == StatusFeatRegistered {
-			glog.Fatalf("%v: %v: duplicate status feature by name of '%v'", flagName, ErrInvalidFlag, eqs[0])
+		if status, ok := availableLogStatusFeatures[eqs[0]]; !ok {
+			glog.Errorf("%v: %v: unavailable status feature by name of '%v'", flagName, ErrInvalidFlag, eqs[0])
+			os.Exit(1)
+		} else if status == StatusFeatRegistered {
+			glog.Errorf("%v: %v: duplicate status feature by name of '%v'", flagName, ErrInvalidFlag, eqs[0])
+			os.Exit(1)
 		}
 
 		// If user just uses "sync" instead of "sync=42", append empty string and delegate to each status log function how to handle it
@@ -832,7 +836,7 @@ func dispatchStatusLogs(ctx *cli.Context, ethe *eth.Ethereum) {
 		switch eqs[0] {
 		case "sync":
 			availableLogStatusFeatures["sync"] = StatusFeatRegistered
-			go runStatusSyncLogs(ethe, eqs[1], ctx.GlobalInt(aliasableName(MaxPeersFlag.Name, ctx)))
+			go runStatusSyncLogs(ctx, ethe, eqs[1], ctx.GlobalInt(aliasableName(MaxPeersFlag.Name, ctx)))
 		}
 	}
 }
@@ -840,8 +844,7 @@ func dispatchStatusLogs(ctx *cli.Context, ethe *eth.Ethereum) {
 // runStatusSyncLogs starts STATUS SYNC logging at a given interval.
 // It should be run as a goroutine.
 // eg. --log-status="sync=42" logs SYNC information every 42 seconds
-func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
-
+func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPeers int) {
 	// Establish default interval.
 	intervalI := 60
 
@@ -857,7 +860,12 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 	}
 
 	glog.V(logger.Info).Infof("Rolling SYNC log interval set: %d seconds", intervalI)
-	glog.D(logger.Warn).Warnf("Rolling SYNC status logs set to every %d seconds. You can adjust this with the --%s flag.", intervalI, LogStatusFlag.Name)
+
+	statIntervalNotice := fmt.Sprintf("Rolling SYNC status logs set to every %d seconds. ", intervalI)
+	if !ctx.GlobalIsSet(LogStatusFlag.Name) {
+		statIntervalNotice += fmt.Sprintf("You can adjust this with the --%s flag.", LogStatusFlag.Name)
+	}
+	glog.D(logger.Warn).Warnf(statIntervalNotice)
 
 	tickerInterval := time.Second * time.Duration(int32(intervalI))
 	ticker := time.NewTicker(tickerInterval)
@@ -871,6 +879,20 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 	var sigc = make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(sigc)
+
+
+	// Proof of concept create event subscription
+	ethEvents := e.EventMux().Subscribe(core.ChainEvent{}, downloader.StartEvent{})
+	go func() {
+		for e := range ethEvents.Chan() {
+			switch d := e.Data.(type) {
+			case core.ChainEvent:
+				glog.D(logger.Info).Infof("chainevent time=%v block=%v", e.Time, d.Block.NumberU64())
+			case downloader.StartEvent:
+				glog.D(logger.Info).Infof("downloader start time=%v peer=%v", e.Time, d.Peer)
+			}
+		}
+	}()
 
 
 	for {
@@ -1020,12 +1042,12 @@ func runStatusSyncLogs(e *eth.Ethereum, interval string, maxPeers int) {
 			lsModeN++
 
 			// This allows maximum user optionality for desired integration with rest of event-based logging.
-			glog.D(logger.Error).Infof("SYNC %s " + modeIcon + "%s %s " + logger.ColorGreen("✌︎︎︎") + "%s %s", lsModeName[lsMode], headDisplay, blocksprocesseddisplay, peerDisplay, domOrHeight)
+			glog.D(logger.Warn).Infof("SYNC %s " + modeIcon + "%s %s " + logger.ColorGreen("✌︎︎︎") + "%s %s", lsModeName[lsMode], headDisplay, blocksprocesseddisplay, peerDisplay, domOrHeight)
 
 		case <-sigc:
 			// Listen for interrupt
 			ticker.Stop()
-			glog.D(logger.Info).Errorln("SYNC Stopping.")
+			glog.D(logger.Warn).Warnln("SYNC Stopping.")
 			return
 		}
 	}

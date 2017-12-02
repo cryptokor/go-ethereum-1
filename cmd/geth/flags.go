@@ -166,7 +166,7 @@ var (
 	}
 	LogStatusFlag = cli.StringFlag{
 		Name:  "log-status",
-		Usage: `Toggle interval-based STATUS logs: comma-separated list of <pattern>=<interval>`,
+		Usage: `Toggle interval-based STATUS logs: comma-separated list of <pattern>=<interval>. Use 'off' to disable entirely.'`,
 		Value: "sync=30",
 	}
 	MLogFlag = cli.StringFlag{

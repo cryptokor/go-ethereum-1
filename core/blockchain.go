@@ -210,6 +210,10 @@ func NewBlockChainDryrun(chainDb ethdb.Database, config *ChainConfig, pow pow.Po
 	return bc, nil
 }
 
+func (self *BlockChain) GetEventMux() *event.TypeMux {
+	return self.eventMux
+}
+
 func (self *BlockChain) getProcInterrupt() bool {
 	return atomic.LoadInt32(&self.procInterrupt) == 1
 }
@@ -689,7 +693,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	glog.V(logger.Warn).Infof("Last header: #%d [%x…] TD=%v", self.hc.CurrentHeader().Number, self.hc.CurrentHeader().Hash().Bytes()[:4], headerTd)
 	glog.V(logger.Warn).Infof("Last block: #%d [%x…] TD=%v", self.currentBlock.Number(), self.currentBlock.Hash().Bytes()[:4], blockTd)
 	glog.V(logger.Warn).Infof("Fast block: #%d [%x…] TD=%v", self.currentFastBlock.Number(), self.currentFastBlock.Hash().Bytes()[:4], fastTd)
-	glog.D(logger.Warn).Infof("Local head header: #%s [%s…] TD=%s",
+	glog.D(logger.Warn).Infof("Local head header:     #%s [%s…] TD=%s",
 		logger.ColorGreen(strconv.Itoa(int(self.hc.CurrentHeader().Number.Uint64()))),
 		logger.ColorGreen(self.hc.CurrentHeader().Hash().Hex()[:8]),
 		logger.ColorGreen(strconv.Itoa(int(headerTd.Uint64()))))
