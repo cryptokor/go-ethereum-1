@@ -550,20 +550,35 @@ func init() {
 
 	logging.logTName = fileLog
 	// Default stderrThreshold is ERROR.
+	// This makes V(logger.Error) logs print ALSO to stderr.
 	logging.stderrThreshold = errorLog
+
 	// Establish defaults for trace thresholds.
 	logging.verbosityTraceThreshold.set(0)
 	logging.severityTraceThreshold.set(2)
+
 	// Default for verbosity.
 	logging.setVState(5, nil, false)
 	go logging.flushDaemon()
 
 	display.logTName = displayLog
-	display.stderrThreshold = errorLog
+	// Renders anything at or below (Warn...) level Info to stderr, which
+	// is set by default anyway.
+	display.stderrThreshold = infoLog
+
 	// toStderr makes it ONLY print to stderr, not to file
 	display.toStderr = true
+
+	// Should never reach... unless we get real fancy with D(levels)
 	display.verbosityTraceThreshold.set(5)
-	display.severityTraceThreshold.set(3) // only for Fatal logs
+	// Only includes traces for severity=fatal logs for dispaly.
+	// This should never be reached; fatal logs should ALWAYS be logged to file,
+	// and they will also be written to stderr (anything Error and above is).
+	display.severityTraceThreshold.set(3)
+	// Set display verbosity default Info. So it will render
+	// all Fatal, Error, Warn, and Info log levels.
+	// Please don't use Fatal for display; again, Fatal logs should only go through file logging
+	// (they will be printed to stderr anyway).
 	display.setVState(3, nil, false)
 	go display.flushDaemon()
 }
