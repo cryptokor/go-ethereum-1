@@ -149,6 +149,11 @@ var (
 		Usage: "Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=core, 5=debug, 6=detail",
 		Value: glog.GetVerbosity(),
 	}
+	DisplayFlag = cli.IntFlag{
+		Name:  "display",
+		Usage: "Display verbosity: 0=silent, 1=basics, 2=status, 3=events",
+		Value: 2,
+	}
 	VModuleFlag = cli.GenericFlag{
 		Name:  "vmodule",
 		Usage: "Per-module verbosity: comma-separated list of <pattern>=<level> (e.g. eth/*=6,p2p=5)",

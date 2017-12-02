@@ -110,7 +110,7 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 		glog.V(logger.Warn).Errorf("Network port %s:%d could not be mapped: %v\n", protocol, intport, err)
 	} else {
 		glog.V(logger.Info).Infof("Mapped network port %s:%d -> %d (%s) using %s\n", protocol, extport, intport, name, m)
-		glog.D(logger.Info).Infof("Mapped network port %s:%s -> %s (%s) using %s\n", logger.ColorGreen(protocol), logger.ColorGreen(strconv.Itoa(extport)), logger.ColorGreen(strconv.Itoa(intport)), name, m)
+		glog.D(logger.Warn).Infof("Mapped network port %s:%s -> %s (%s) using %s\n", logger.ColorGreen(protocol), logger.ColorGreen(strconv.Itoa(extport)), logger.ColorGreen(strconv.Itoa(intport)), name, m)
 	}
 	for {
 		select {

@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -153,6 +154,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	glog.V(logger.Info).Infof("Protocol Versions: %v, Network Id: %v, Chain Id: %v", ProtocolVersions, config.NetworkId, config.ChainConfig.GetChainID())
+	glog.V(logger.Warn).Infof("Protocol Versions: %v, Network Id: %v, Chain Id: %v", logger.ColorGreen(fmt.Sprintf("%v", ProtocolVersions)), logger.ColorGreen(strconv.Itoa(config.NetworkId)), logger.ColorGreen(config.ChainConfig.GetChainID().String()))
 
 	// Load up any custom genesis block if requested
 	if config.Genesis != nil {
@@ -227,7 +229,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			return nil, err
 		}
 		glog.V(logger.Info).Infof("Successfully wrote default ethereum mainnet genesis block: %s", logger.ColorGreen(genesis.Hash().Hex()))
-		glog.D(logger.Info).Infof("Wrote mainnet genesis block: %s", logger.ColorGreen(genesis.Hash().Hex()))
+		glog.D(logger.Warn).Infof("Wrote mainnet genesis block: %s", logger.ColorGreen(genesis.Hash().Hex()))
 	}
 
 	// Log genesis block information.
@@ -240,7 +242,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		genName = "custom"
 	}
 	glog.V(logger.Info).Infof("Successfully established %s genesis block: %s", genName, genesis.Hash().Hex())
-	glog.D(logger.Info).Infof("Genesis block: %s (%s)", logger.ColorGreen(genesis.Hash().Hex()), genName)
+	glog.D(logger.Warn).Infof("Genesis block: %s (%s)", logger.ColorGreen(genesis.Hash().Hex()), genName)
 
 	if config.ChainConfig == nil {
 		return nil, errors.New("missing chain config")

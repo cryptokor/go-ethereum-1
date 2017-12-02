@@ -131,7 +131,7 @@ func copyChainConfigFileToChainDataDir(ctx *cli.Context, identity, configFilePat
 		return e
 	}
 
-	glog.V(logger.Debug).Infof("Copying %v to %v/chain.json", configFilePath, identityDirPath)
+	// glog.V(logger.Debug).Infof("Copying %v to %v/chain.json", configFilePath, identityDirPath)
 	b, e := ioutil.ReadFile(configFilePath)
 	if e != nil {
 		return e
@@ -357,11 +357,11 @@ func MakeWSRpcHost(ctx *cli.Context) string {
 // for Geth and returns half of the allowance to assign to the database.
 func MakeDatabaseHandles() int {
 	if err := raiseFdLimit(2048); err != nil {
-		glog.V(logger.Warn).Info("Failed to raise file descriptor allowance: ", err)
+		glog.V(logger.Warn).Errorf("Failed to raise file descriptor allowance: ", err)
 	}
 	limit, err := getFdLimit()
 	if err != nil {
-		glog.V(logger.Warn).Info("Failed to retrieve file descriptor allowance: ", err)
+		glog.V(logger.Warn).Errorf("Failed to retrieve file descriptor allowance: ", err)
 	}
 	if limit > 2048 { // cap database file descriptors even if more is available
 		limit = 2048
@@ -385,7 +385,7 @@ func MakeAccountManager(ctx *cli.Context) *accounts.Manager {
 	if path := ctx.GlobalString(aliasableName(KeyStoreDirFlag.Name, ctx)); path != "" {
 		af, e := filepath.Abs(path)
 		if e != nil {
-			glog.V(logger.Error).Infof("keydir path could not be made absolute: %v: %v", path, e)
+			glog.V(logger.Error).Errorf("keydir path could not be made absolute: %v: %v", path, e)
 		} else {
 			keydir = af
 		}
@@ -418,7 +418,7 @@ func MakeAddress(accman *accounts.Manager, account string) (accounts.Account, er
 func MakeEtherbase(accman *accounts.Manager, ctx *cli.Context) common.Address {
 	accounts := accman.Accounts()
 	if !ctx.GlobalIsSet(aliasableName(EtherbaseFlag.Name, ctx)) && len(accounts) == 0 {
-		glog.V(logger.Warn).Infoln("WARNING: No etherbase set and no accounts found as default")
+		glog.V(logger.Warn).Warnf("WARNING: No etherbase set and no accounts found as default")
 		return common.Address{}
 	}
 	etherbase := ctx.GlobalString(aliasableName(EtherbaseFlag.Name, ctx))
@@ -594,7 +594,7 @@ func MakeSystemNode(version string, ctx *cli.Context) *node.Node {
 	}
 
 	if ctx.GlobalBool(Unused1.Name) {
-		glog.V(logger.Info).Infoln(fmt.Sprintf("Geth started with --%s flag, which is unused by Geth Classic and can be omitted", Unused1.Name))
+		glog.V(logger.Warn).Warnln(fmt.Sprintf("Geth started with --%s flag, which is unused by Geth Classic and can be omitted", Unused1.Name))
 	}
 
 	return stack
@@ -738,11 +738,11 @@ func mustMakeSufficientChainConfig(ctx *cli.Context) *core.SufficientChainConfig
 		}
 		if ctx.GlobalIsSet(aliasableName(BootnodesFlag.Name, ctx)) {
 			config.ParsedBootstrap = MakeBootstrapNodesFromContext(ctx)
-			glog.V(logger.Warn).Infof(`WARNING: overwriting external bootnodes configuration with those from --%s flag. Value set from flag: %v`, aliasableName(BootnodesFlag.Name, ctx), config.ParsedBootstrap)
+			glog.V(logger.Warn).Warnf(`Overwriting external bootnodes configuration with those from --%s flag. Value set from flag: %v`, aliasableName(BootnodesFlag.Name, ctx), config.ParsedBootstrap)
 		}
 		if ctx.GlobalIsSet(aliasableName(NetworkIdFlag.Name, ctx)) {
 			i := ctx.GlobalInt(aliasableName(NetworkIdFlag.Name, ctx))
-			glog.V(logger.Warn).Infof(`WARNING: overwriting external network id configuration with that from --%s flag. Value set from flag: %d`, aliasableName(NetworkIdFlag.Name, ctx), i)
+			glog.V(logger.Warn).Warnf(`Overwriting external network id configuration with that from --%s flag. Value set from flag: %d`, aliasableName(NetworkIdFlag.Name, ctx), i)
 			if i < 1 {
 				glog.Fatalf("Network ID cannot be less than 1. Got: %d", i)
 			}
@@ -814,23 +814,23 @@ func logChainConfiguration(ctx *cli.Context, config *core.SufficientChainConfig)
 	// TODO: uglify V logs? provide more detail for debugging? normal users won't see this.
 	if chainIsCustom {
 		glog.V(logger.Info).Infof("Using custom chain configuration: %s", chainIdentity)
-		glog.D(logger.Info).Infof("Custom chain config: %s", logger.ColorGreen(chainIdentity))
+		glog.D(logger.Warn).Infof("Custom chain config: %s", logger.ColorGreen(chainIdentity))
 	}
 
 	glog.V(logger.Info).Info(glog.Separator("-"))
 
 	glog.V(logger.Info).Infof("Starting Geth Classic %s", ctx.App.Version)
-	glog.D(logger.Info).Infof("Geth Classic version: %s", logger.ColorGreen(ctx.App.Version))
+	glog.D(logger.Warn).Infof("Geth Classic version: %s", logger.ColorGreen(ctx.App.Version))
 
 	glog.V(logger.Info).Infof("Geth is configured to use ETC blockchain: %v", config.Name)
-	glog.D(logger.Info).Infof("ETC blockchain: %s", logger.ColorGreen(config.Name))
+	glog.D(logger.Warn).Infof("ETC blockchain: %s", logger.ColorGreen(config.Name))
 
 	chaindataDirName := MustMakeChainDataDir(ctx) + "/chaindata"
 	glog.V(logger.Info).Infof("Using chain database at: %s", chaindataDirName)
-	glog.D(logger.Info).Infof("Chain database: %s", logger.ColorGreen(chaindataDirName))
+	glog.D(logger.Warn).Infof("Chain database: %s", logger.ColorGreen(chaindataDirName))
 
 	glog.V(logger.Info).Infof("%v blockchain upgrades associated with this configuration:", len(config.ChainConfig.Forks))
-	glog.D(logger.Info).Infof("Blockchain upgrades configured: %s", logger.ColorGreen(strconv.Itoa(len(config.ChainConfig.Forks))))
+	glog.D(logger.Warn).Infof("Blockchain upgrades configured: %s", logger.ColorGreen(strconv.Itoa(len(config.ChainConfig.Forks))))
 
 	for i := range config.ChainConfig.Forks {
 		f := fmt.Sprintf(" %7v %v", config.ChainConfig.Forks[i].Block, config.ChainConfig.Forks[i].Name)
@@ -838,7 +838,7 @@ func logChainConfiguration(ctx *cli.Context, config *core.SufficientChainConfig)
 			f += fmt.Sprintf(" (%v)", config.ChainConfig.Forks[i].RequiredHash.Hex())
 		}
 		glog.V(logger.Info).Infoln(f)
-		glog.D(logger.Info).Infoln(f)
+		glog.D(logger.Warn).Infoln(f)
 		for _, feat := range config.ChainConfig.Forks[i].Features {
 			glog.V(logger.Debug).Infof("    id: %v", feat.ID)
 			for k, v := range feat.Options {
@@ -850,7 +850,7 @@ func logChainConfiguration(ctx *cli.Context, config *core.SufficientChainConfig)
 	if chainIsCustom {
 		sn := strconv.Itoa(int(state.StartingNonce))
 		glog.V(logger.Info).Infof("State starting nonce: %s", logger.ColorGreen(sn))
-		glog.D(logger.Info).Infof("State starting nonce: %s", logger.ColorGreen(sn))
+		glog.D(logger.Warn).Infof("State starting nonce: %s", logger.ColorGreen(sn))
 	}
 
 	glog.V(logger.Info).Info(glog.Separator("-"))

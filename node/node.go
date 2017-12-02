@@ -293,7 +293,7 @@ func (n *Node) startIPC(apis []rpc.API) error {
 	}
 	go func() {
 		glog.V(logger.Info).Infof("IPC endpoint opened: %s", n.ipcEndpoint)
-		glog.D(logger.Info).Infof("IPC endpoint opened: %s", logger.ColorGreen(n.ipcEndpoint))
+		glog.D(logger.Warn).Infof("IPC endpoint opened: %s", logger.ColorGreen(n.ipcEndpoint))
 
 		for {
 			conn, err := listener.Accept()
@@ -422,7 +422,7 @@ func (n *Node) startWS(endpoint string, apis []rpc.API, modules []string, wsOrig
 	}
 	go rpc.NewWSServer(wsOrigins, handler).Serve(listener)
 	glog.V(logger.Info).Infof("WebSocket endpoint opened: ws://%s", endpoint)
-	glog.D(logger.Info).Infof("WebSocket endpoint opened: ws://%s", logger.ColorGreen(endpoint))
+	glog.D(logger.Warn).Infof("WebSocket endpoint opened: ws://%s", logger.ColorGreen(endpoint))
 
 	// All listeners booted successfully
 	n.wsEndpoint = endpoint

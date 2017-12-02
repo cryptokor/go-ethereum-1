@@ -247,7 +247,7 @@ func ListenUDP(priv *ecdsa.PrivateKey, laddr string, natm nat.Interface, nodeDBP
 		return nil, err
 	}
 	glog.V(logger.Info).Infoln("Listening,", tab.self)
-	glog.D(logger.Info).Infoln("UDP listening. Client enode:", logger.ColorGreen(tab.self.String()))
+	glog.D(logger.Warn).Infoln("UDP listening. Client enode:", logger.ColorGreen(tab.self.String()))
 	return tab, nil
 }
 

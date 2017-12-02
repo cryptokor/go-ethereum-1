@@ -634,7 +634,7 @@ func init() {
 	// all Fatal, Error, Warn, and Info log levels.
 	// Please don't use Fatal for display; again, Fatal logs should only go through file logging
 	// (they will be printed to stderr anyway).
-	display.setVState(3, nil, false)
+	display.setVState(2, nil, false)
 	go display.flushDaemon()
 }
 

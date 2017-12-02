@@ -174,6 +174,7 @@ func makeCLIApp() (app *cli.App) {
 		RPCCORSDomainFlag,
 		NeckbeardFlag,
 		VerbosityFlag,
+		DisplayFlag,
 		VModuleFlag,
 		VerbosityTraceFloorFlag,
 		LogDirFlag,
@@ -258,6 +259,14 @@ func makeCLIApp() (app *cli.App) {
 		// GOTCHA: There may be NO glog.V logs called before this is set.
 		//   Otherwise everything will get all fucked and there will be no logs.
 		glog.SetLogDir(logDir)
+
+		if ctx.GlobalIsSet(DisplayFlag.Name) {
+			i := ctx.GlobalInt(DisplayFlag.Name)
+			if i > 3 {
+				return fmt.Errorf("Error: --%s level must be 0 <= i <= 3, got: %d", DisplayFlag.Name, i)
+			}
+			glog.SetD(i)
+		}
 
 		if ctx.GlobalBool(NeckbeardFlag.Name) {
 			glog.SetD(0)

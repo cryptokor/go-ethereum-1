@@ -943,12 +943,14 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 				// 	greenParenify(fmt.Sprintf("%v ago", time.Since(d.LatestBlockTime))),
 				// 	greenParenify(fmt.Sprintf("%v", d.Elasped)),
 				// )
-				glog.D(logger.Info).Infof(chainIcon+" Insert stats=%s "+logger.ColorGreen("◼︎")+"=%s took=%s",
+				glog.D(logger.Info).Infof(chainIcon+" Insert "+logger.ColorGreen("stats")+"=%s "+logger.ColorGreen("◼︎")+"=%s "+logger.ColorGreen("took")+"=%s",
 					greenParenify(fmt.Sprintf("processed=%4d queued=%4d ignored=%4d txs=%4d", d.Processed, d.Queued, d.Ignored, d.TxCount)),
 					greenParenify(fmt.Sprintf("n=%8d hash=%s… time=%v ago", d.LastNumber, d.LastHash.Hex()[:9], time.Since(d.LatestBlockTime))),
 					greenParenify(fmt.Sprintf("%v", d.Elasped)),
 				)
-				chainEventLastSent = time.Now()
+				if bool(glog.D(logger.Info)) {
+					chainEventLastSent = time.Now()
+				}
 			case core.ChainSideEvent:
 				glog.D(logger.Info).Infof(chainIcon+" Insert forked block blockN=%s blockHash=%s", greenParenify(strconv.Itoa(int(d.Block.NumberU64()))), greenParenify(d.Block.Hash().Hex()[:9]))
 				// chainEventLastSent = time.Now()
