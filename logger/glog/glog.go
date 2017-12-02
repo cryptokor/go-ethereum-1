@@ -178,6 +178,10 @@ func GetVerbosity() *Level {
 	return &logging.verbosity
 }
 
+func GetDisplayable() *Level {
+	return &display.verbosity
+}
+
 // get returns the value of the severity.
 func (s *severity) get() severity {
 	return severity(atomic.LoadInt32((*int32)(s)))
