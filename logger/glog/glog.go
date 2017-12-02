@@ -115,7 +115,7 @@ const (
 
 const severityChar = "IWEF"
 
-const severityColorReset = "\x1b[0m"                                                // reset both foreground and background
+const severityColorReset = "\x1b[0m"                                        // reset both foreground and background
 var severityColor = []string{"\x1b[2m", "\x1b[33m", "\x1b[31m", "\x1b[35m"} // info:dim warn:yellow, error:red, fatal:magenta
 
 var severityName = []string{
@@ -586,7 +586,7 @@ func init() {
 // Flush flushes all pending log I/O.
 func Flush() {
 	logging.lockAndFlushAll()
-	display.lockAndFlushAll()
+	// display.lockAndFlushAll()
 }
 
 // traceThreshold determines the arbitrary level for log lines to be printed
@@ -1029,6 +1029,7 @@ const bufferSize = 256 * 1024
 // createFiles creates all the log files for severity from sev down to infoLog.
 // l.mu is held.
 func (l *loggingT) createFiles(sev severity) error {
+	fmt.Println("creating file severity=", sev)
 	now := time.Now()
 	// Files are created in decreasing severity order, so as soon as we find one
 	// has already been created, we can stop.
@@ -1038,6 +1039,7 @@ func (l *loggingT) createFiles(sev severity) error {
 			sev:    s,
 		}
 		if err := sb.rotateFile(now); err != nil {
+			fmt.Println("error rotating file", err)
 			return err
 		}
 		l.file[s] = sb
@@ -1068,6 +1070,12 @@ func (l *loggingT) flushAll() {
 	for s := fatalLog; s >= infoLog; s-- {
 		file := l.file[s]
 		if file != nil {
+			// if e := file.Flush(); e != nil {
+			// 	stdLog.Fatalln(e)
+			// }
+			// if e := file.Sync(); e != nil {
+			// 	stdLog.Fatalln(e)
+			// }
 			file.Flush() // ignore error
 			file.Sync()  // ignore error
 		}

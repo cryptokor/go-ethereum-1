@@ -232,6 +232,7 @@ func makeCLIApp() (app *cli.App) {
 		if e := os.MkdirAll(logDir, os.ModePerm); e != nil {
 			return e
 		}
+		log.Println("Writing logs to ", logDir)
 		// Turn on only file logging, disabling logging(T).toStderr and logging(T).alsoToStdErr
 		glog.SetLogDir(logDir)
 		glog.SetToStderr(false)

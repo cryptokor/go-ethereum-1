@@ -845,9 +845,9 @@ func dispatchStatusLogs(ctx *cli.Context, ethe *eth.Ethereum) {
 // It should be run as a goroutine.
 // eg. --log-status="sync=42" logs SYNC information every 42 seconds
 func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPeers int) {
-	// Establish default interval.
+	// Establish default interval and parse desired interval from context.
+	// Includes convenience notifications for UI/UX.
 	intervalI := 60
-
 	if interval != "" {
 		i, e := strconv.Atoi(interval)
 		if e != nil {
@@ -858,192 +858,250 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 		}
 		intervalI = i
 	}
-
 	glog.V(logger.Info).Infof("Rolling SYNC log interval set: %d seconds", intervalI)
 
+	// Only use severity=warn if --log-status not in use (ie using defaults)
+	statIntervalNoticeFn := glog.D(logger.Error).Infof
 	statIntervalNotice := fmt.Sprintf("Rolling SYNC status logs set to every %d seconds. ", intervalI)
 	if !ctx.GlobalIsSet(LogStatusFlag.Name) {
 		statIntervalNotice += fmt.Sprintf("You can adjust this with the --%s flag.", LogStatusFlag.Name)
+		statIntervalNoticeFn = glog.D(logger.Error).Warnf
 	}
-	glog.D(logger.Warn).Warnf(statIntervalNotice)
+	statIntervalNoticeFn(statIntervalNotice)
 
+	// Set up ticker based on established interval.
 	tickerInterval := time.Second * time.Duration(int32(intervalI))
 	ticker := time.NewTicker(tickerInterval)
+	var chainEventLastSent time.Time
 
+	// Bookmark vars.
 	var lastLoggedBlockNumber uint64
+
 	var lsMode = lsModeDiscover // init
 	var lsModeN int
 	var lsModeDiscoverSpinners = []string{"➫", "➬", "➭"}
-	// 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
-	var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // len 13
+
+	var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
+	chainIcon := "◼︎⋯⋯" + logger.ColorGreen("◼︎")
+	downloaderIcon := "◼︎⋯⋯" + logger.ColorGreen("⬇︎")
+
 	var sigc = make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(sigc)
 
-
+	// Should listen for events.
 	// Proof of concept create event subscription
-	ethEvents := e.EventMux().Subscribe(core.ChainEvent{}, downloader.StartEvent{})
+	ethEvents := e.EventMux().Subscribe(
+		// ChainEvent is called when a block is inserted into the local blockchain.
+		// core.ChainEvent{},
+		// ChainSideEvent is called when a forked block is inserted into the local blockchain.
+		core.ChainSideEvent{},
+		// NewMinedBlockEvent is called when a new block is mined locally.
+		// core.NewMinedBlockEvent{},
+		// ChainInsertEvent is called when a batch of block is finished processing through the bc.InsertChain fn.
+		// It includes statistics. Processed, queued, ignored, txcount, etc.
+		core.ChainInsertEvent{},
+		// StartEvent is called when a peer is selected for synchronisation and sync begins.
+		downloader.StartEvent{},
+		// DoneEvent is called when synchronisation with a peer finishes without error.
+		downloader.DoneEvent{},
+		// FailedEvent is called when synchronisation with a peer finishes with an error.
+		downloader.FailedEvent{},
+	)
+	greenParenify := func(s string) string {
+		return logger.ColorGreen("⟪") + s + logger.ColorGreen("⟫")
+	}
+	handleDownloaderEvent := func(e interface{}) {
+		s := downloaderIcon + " "
+		f := glog.D(logger.Info).Infoln
+		switch d := e.(type) {
+		case downloader.StartEvent:
+			s += "Start " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]) + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
+		case downloader.DoneEvent:
+			s += "Done  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]) + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
+		case downloader.FailedEvent:
+			s += "Fail  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " err=" + greenParenify(d.Err.Error())
+			f = glog.D(logger.Info).Warnln
+		}
+		f(s)
+	}
+
 	go func() {
 		for e := range ethEvents.Chan() {
 			switch d := e.Data.(type) {
-			case core.ChainEvent:
-				glog.D(logger.Info).Infof("chainevent time=%v block=%v", e.Time, d.Block.NumberU64())
-			case downloader.StartEvent:
-				glog.D(logger.Info).Infof("downloader start time=%v peer=%v", e.Time, d.Peer)
+			// case core.ChainEvent:
+			// 	glog.D(logger.Info).Infof("chainevent time=%v block=%v", e.Time, d.Block.NumberU64())
+			case core.ChainInsertEvent:
+				glog.D(logger.Info).Infof(chainIcon+" Insert processed=%s queued=%s ignored=%s txs=%s lastN=%s lastHash=%s elapsed=%s",
+					greenParenify(fmt.Sprintf("%4d", d.Processed)),
+					greenParenify(fmt.Sprintf("%4d", d.Queued)),
+					greenParenify(fmt.Sprintf("%4d", d.Ignored)),
+					greenParenify(fmt.Sprintf("%4d", d.TxCount)),
+					greenParenify(fmt.Sprintf("%8d", d.LastNumber)),
+					greenParenify(d.LastHash.Hex()[:9]+"…"),
+					greenParenify(fmt.Sprintf("%v", d.Elasped)),
+				)
+				chainEventLastSent = time.Now()
+			case core.ChainSideEvent:
+				glog.D(logger.Info).Infof(chainIcon+" Insert forked block blockN=%s blockHash=%s", greenParenify(strconv.Itoa(int(d.Block.NumberU64()))), greenParenify(d.Block.Hash().Hex()[:9]))
+				// chainEventLastSent = time.Now()
+			default:
+				handleDownloaderEvent(d)
 			}
 		}
 	}()
 
+	printIntervalStatusLog := func() {
+		lenPeers := e.Downloader().GetPeers().Len()
+
+		//rtt, ttl, conf := e.Downloader().Qos()
+		//rttS, ttlS, confS := rtt.String(), ttl.String(), fmt.Sprintf("%1.2f", conf)
+		//qosDisplay := fmt.Sprintf("rtt=%s ttl=%s conf=%s", logger.ColorGreen(rttS), logger.ColorGreen(ttlS), logger.ColorGreen(confS))
+
+		_, current, height, _, _ := e.Downloader().Progress() // origin, current, height, pulled, known
+		mode := e.Downloader().GetMode()
+		if mode == downloader.FastSync {
+			current = e.BlockChain().CurrentFastBlock().NumberU64()
+		}
+
+		// Get our head block
+		blockchain := e.BlockChain()
+		currentBlockHex := blockchain.CurrentBlock().Hash().Hex()
+
+		// Discover -> not synchronising (searching for peers)
+		// FullSync/FastSync -> synchronising
+		// Import -> synchronising, at full height
+		fOfHeight := fmt.Sprintf("%7d", height)
+
+		// Calculate and format percent sync of known height
+		heightRatio := float64(current) / float64(height)
+		heightRatio = heightRatio * 100
+		fHeightRatio := fmt.Sprintf("%4.2f%%", heightRatio)
+
+		// Wait until syncing because real dl mode will not be engaged until then
+		lsMode = lsModeDiscover
+		if e.Downloader().Synchronising() {
+			switch mode {
+			case downloader.FullSync:
+				lsMode = lsModeFullSync
+			case downloader.FastSync:
+				lsMode = lsModeFastSync
+				currentBlockHex = blockchain.CurrentFastBlock().Hash().Hex()
+			}
+		}
+		importMode := lenPeers > 0 && lsMode == lsModeDiscover && current >= height && !(current == 0 && height == 0)
+		if importMode {
+			lsMode = lsModeImport
+			fOfHeight = ""    // strings.Repeat(" ", 12)
+			fHeightRatio = "" // strings.Repeat(" ", 7)
+		}
+		if height == 0 {
+			fOfHeight = ""    // strings.Repeat(" ", 12)
+			fHeightRatio = "" // strings.Repeat(" ", 7)
+		}
+
+		// Calculate block stats for interval
+		numBlocksDiff := current - lastLoggedBlockNumber
+		numTxsDiff := 0
+		mGas := new(big.Int)
+
+		var numBlocksDiffPerSecond uint64
+		var numTxsDiffPerSecond int
+		var mGasPerSecond = new(big.Int)
+
+		var dominoGraph string
+		var nDom int
+		if numBlocksDiff > 0 && numBlocksDiff != current {
+			for i := lastLoggedBlockNumber + 1; i <= current; i++ {
+				b := blockchain.GetBlockByNumber(i)
+				if b != nil {
+					txLen := b.Transactions().Len()
+					// Add to tallies
+					numTxsDiff += txLen
+					mGas = new(big.Int).Add(mGas, b.GasUsed())
+					// Domino effect
+					if lsMode == lsModeImport {
+						if txLen > len(dominoes)-1 {
+							// prevent slice out of bounds
+							txLen = len(dominoes) - 1
+						}
+						if nDom <= 20 {
+							dominoGraph += dominoes[txLen]
+						}
+						nDom++
+					}
+				}
+			}
+			if nDom > 20 {
+				dominoGraph += "…"
+			}
+		}
+		dominoGraph = logger.ColorGreen(dominoGraph)
+
+		// Convert to per-second stats
+		// FIXME(?): Some degree of rounding will happen.
+		// For example, if interval is 10s and we get 6 blocks imported in that span,
+		// stats will show '0' blocks/second. Looks a little strange; but on the other hand,
+		// precision costs visual space, and normally just looks weird when starting up sync or
+		// syncing slowly.
+		numBlocksDiffPerSecond = numBlocksDiff / uint64(intervalI)
+
+		// Don't show initial current / per second val
+		if lastLoggedBlockNumber == 0 {
+			numBlocksDiffPerSecond = 0
+			numBlocksDiff = 0
+		}
+
+		// Divide by interval to yield per-second stats
+		numTxsDiffPerSecond = numTxsDiff / intervalI
+		mGasPerSecond = new(big.Int).Div(mGas, big.NewInt(int64(intervalI)))
+		mGasPerSecond = new(big.Int).Div(mGasPerSecond, big.NewInt(1000000))
+		mGasPerSecondI := mGasPerSecond.Int64()
+
+		// Update last logged current block number
+		lastLoggedBlockNumber = current
+
+		// Format head block hex for printing (eg. d4e…fa3)
+		cbhexstart := currentBlockHex[:9] // trim off '0x' prefix
+
+		localHeadHeight := fmt.Sprintf("#%7d", current)
+		localHeadHex := fmt.Sprintf("%s…", cbhexstart)
+		peersOfMax := fmt.Sprintf("%2d/%2d peers", lenPeers, maxPeers)
+		domOrHeight := fOfHeight + " " + fHeightRatio
+		if len(strings.Replace(domOrHeight, " ", "", -1)) != 0 {
+			domOrHeight = "height=" + greenParenify(domOrHeight)
+		} else {
+			domOrHeight = ""
+		}
+		var blocksprocesseddisplay string
+		if lsMode != lsModeImport {
+			blocksprocesseddisplay = logger.ColorGreen("~") + greenParenify(fmt.Sprintf("%4d blks %4d txs %2d mgas  /sec", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI))
+		} else {
+			blocksprocesseddisplay = logger.ColorGreen("+") + greenParenify(fmt.Sprintf("%4d blks %4d txs %8d mgas", numBlocksDiff, numTxsDiff, mGas.Uint64()))
+			domOrHeight = dominoGraph
+		}
+
+		// Log to ERROR.
+		headDisplay := greenParenify(localHeadHeight + " " + localHeadHex)
+		peerDisplay := greenParenify(peersOfMax)
+
+		modeIcon := logger.ColorGreen(lsModeIcon[lsMode])
+		if lsMode == lsModeDiscover {
+			modeIcon = lsModeDiscoverSpinners[lsModeN%3]
+		}
+		modeIcon = logger.ColorGreen(modeIcon)
+		lsModeN++
+
+		// This allows maximum user optionality for desired integration with rest of event-based logging.
+		glog.D(logger.Warn).Infof("SYNC %s "+modeIcon+"%s %s "+logger.ColorGreen("✌︎︎︎")+"%s %s", lsModeName[lsMode], headDisplay, blocksprocesseddisplay, peerDisplay, domOrHeight)
+	}
 
 	for {
 		select {
 		case <-ticker.C:
-			lenPeers := e.Downloader().GetPeers().Len()
-
-			//rtt, ttl, conf := e.Downloader().Qos()
-			//rttS, ttlS, confS := rtt.String(), ttl.String(), fmt.Sprintf("%1.2f", conf)
-			//qosDisplay := fmt.Sprintf("rtt=%s ttl=%s conf=%s", logger.ColorGreen(rttS), logger.ColorGreen(ttlS), logger.ColorGreen(confS))
-
-			_, current, height, _, _ := e.Downloader().Progress() // origin, current, height, pulled, known
-			mode := e.Downloader().GetMode()
-
-			// Get our head block
-			blockchain := e.BlockChain()
-			currentBlockHex := blockchain.CurrentBlock().Hash().Hex()
-
-			// Discover -> not synchronising (searching for peers)
-			// FullSync/FastSync -> synchronising
-			// Import -> synchronising, at full height
-			fOfHeight := fmt.Sprintf("%7d", height)
-
-			// Calculate and format percent sync of known height
-			heightRatio := float64(current) / float64(height)
-			heightRatio = heightRatio * 100
-			fHeightRatio := fmt.Sprintf("%4.2f%%", heightRatio)
-
-			// Wait until syncing because real dl mode will not be engaged until then
-			lsMode = lsModeDiscover
-			if e.Downloader().Synchronising() {
-				switch mode {
-				case downloader.FullSync:
-					lsMode = lsModeFullSync
-				case downloader.FastSync:
-					lsMode = lsModeFastSync
-					currentBlockHex = blockchain.CurrentFastBlock().Hash().Hex()
-				}
+			if time.Since(chainEventLastSent) > time.Duration(time.Second*time.Duration(int32(intervalI/2))) {
+				printIntervalStatusLog()
 			}
-			importMode := lenPeers > 0 && lsMode == lsModeDiscover && current >= height && !(current == 0 && height == 0)
-			if importMode {
-				lsMode = lsModeImport
-				fOfHeight = ""    // strings.Repeat(" ", 12)
-				fHeightRatio = "" // strings.Repeat(" ", 7)
-			}
-			if height == 0 {
-				fOfHeight = ""    // strings.Repeat(" ", 12)
-				fHeightRatio = "" // strings.Repeat(" ", 7)
-			}
-
-			// Calculate block stats for interval
-			numBlocksDiff := current - lastLoggedBlockNumber
-			numTxsDiff := 0
-			mGas := new(big.Int)
-
-			var numBlocksDiffPerSecond uint64
-			var numTxsDiffPerSecond int
-			var mGasPerSecond = new(big.Int)
-
-			var dominoGraph string
-			var nDom int
-			if numBlocksDiff > 0 && numBlocksDiff != current {
-				for i := lastLoggedBlockNumber + 1; i <= current; i++ {
-					b := blockchain.GetBlockByNumber(i)
-					if b != nil {
-						txLen := b.Transactions().Len()
-						// Add to tallies
-						numTxsDiff += txLen
-						mGas = new(big.Int).Add(mGas, b.GasUsed())
-						// Domino effect
-						if lsMode == lsModeImport {
-							if txLen > len(dominoes)-1 {
-								// prevent slice out of bounds
-								txLen = len(dominoes) - 1
-							}
-							if nDom <= 20 {
-								dominoGraph += dominoes[txLen]
-							}
-							nDom++
-						}
-					}
-				}
-				if nDom > 20 {
-					dominoGraph += "…"
-				}
-			}
-			dominoGraph = logger.ColorGreen(dominoGraph)
-
-			// Convert to per-second stats
-			// FIXME(?): Some degree of rounding will happen.
-			// For example, if interval is 10s and we get 6 blocks imported in that span,
-			// stats will show '0' blocks/second. Looks a little strange; but on the other hand,
-			// precision costs visual space, and normally just looks weird when starting up sync or
-			// syncing slowly.
-			numBlocksDiffPerSecond = numBlocksDiff / uint64(intervalI)
-
-			// Don't show initial current / per second val
-			if lastLoggedBlockNumber == 0 {
-				numBlocksDiffPerSecond = 0
-				numBlocksDiff = 0
-			}
-
-			// Divide by interval to yield per-second stats
-			numTxsDiffPerSecond = numTxsDiff / intervalI
-			mGasPerSecond = new(big.Int).Div(mGas, big.NewInt(int64(intervalI)))
-			mGasPerSecond = new(big.Int).Div(mGasPerSecond, big.NewInt(1000000))
-			mGasPerSecondI := mGasPerSecond.Int64()
-
-			// Update last logged current block number
-			lastLoggedBlockNumber = current
-
-			greenParenify := func(s string) string {
-				return logger.ColorGreen("⟪") + s + logger.ColorGreen("⟫")
-			}
-
-			// Format head block hex for printing (eg. d4e…fa3)
-			cbhexstart := currentBlockHex[2:5] // trim off '0x' prefix
-			cbhexend := currentBlockHex[(len(currentBlockHex) - 3):]
-
-			localHeadHeight := fmt.Sprintf("#%7d", current)
-			localHeadHex := fmt.Sprintf("%s…%s", cbhexstart, cbhexend)
-			peersOfMax := fmt.Sprintf("%2d/%2d peers", lenPeers, maxPeers)
-			domOrHeight := fOfHeight + " " + fHeightRatio
-			domOrHeight = domOrHeight
-			if len(strings.Replace(domOrHeight, " ", "",  -1)) != 0 {
-				domOrHeight = "height=" + greenParenify(domOrHeight)
-			} else {
-				domOrHeight = ""
-			}
-			var blocksprocesseddisplay string
-			if lsMode != lsModeImport {
-				blocksprocesseddisplay = logger.ColorGreen("~") + greenParenify(fmt.Sprintf("%4d blks %4d txs %2d mgas  /sec", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI))
-			} else {
-				blocksprocesseddisplay = logger.ColorGreen("+") + greenParenify(fmt.Sprintf("%4d blks %4d txs %8d mgas", numBlocksDiff, numTxsDiff, mGas.Uint64()))
-				domOrHeight = dominoGraph
-			}
-
-			// Log to ERROR.
-			headDisplay := greenParenify(localHeadHeight + " " + localHeadHex)
-			peerDisplay := greenParenify(peersOfMax)
-
-			modeIcon := logger.ColorGreen(lsModeIcon[lsMode])
-			if lsMode == lsModeDiscover {
-				modeIcon = lsModeDiscoverSpinners[lsModeN % 3]
-			}
-			modeIcon = logger.ColorGreen(modeIcon)
-			lsModeN++
-
-			// This allows maximum user optionality for desired integration with rest of event-based logging.
-			glog.D(logger.Warn).Infof("SYNC %s " + modeIcon + "%s %s " + logger.ColorGreen("✌︎︎︎") + "%s %s", lsModeName[lsMode], headDisplay, blocksprocesseddisplay, peerDisplay, domOrHeight)
-
 		case <-sigc:
 			// Listen for interrupt
 			ticker.Stop()

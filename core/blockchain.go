@@ -1529,9 +1529,18 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 		stats.processed++
 	}
 
-	if (stats.queued > 0 || stats.processed > 0 || stats.ignored > 0) && bool(glog.V(logger.Info)) {
+	if stats.queued > 0 || stats.processed > 0 || stats.ignored > 0 {
 		tend := time.Since(tstart)
 		start, end := chain[0], chain[len(chain)-1]
+		events = append(events, ChainInsertEvent{
+			stats.processed,
+			stats.queued,
+			stats.ignored,
+			txcount,
+			end.NumberU64(),
+			end.Hash(),
+			tend,
+		})
 		if logger.MlogEnabled() {
 			mlogBlockchain.Send(mlogBlockchainInsertBlocks.SetDetailValues(
 				stats.processed,

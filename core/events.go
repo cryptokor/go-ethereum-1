@@ -22,6 +22,7 @@ import (
 	"github.com/ethereumproject/go-ethereum/common"
 	"github.com/ethereumproject/go-ethereum/core/types"
 	"github.com/ethereumproject/go-ethereum/core/vm"
+	"time"
 )
 
 // TxPreEvent is posted when a transaction enters the transaction pool.
@@ -67,11 +68,23 @@ type ChainSideEvent struct {
 	Logs  vm.Logs
 }
 
+// TODO: no usages found in project files
 type PendingBlockEvent struct {
 	Block *types.Block
 	Logs  vm.Logs
 }
 
+type ChainInsertEvent struct {
+	Processed int
+	Queued    int
+	Ignored   int
+	TxCount int
+	LastNumber uint64
+	LastHash common.Hash
+	Elasped time.Duration
+}
+
+// TODO: no usages found in project files
 type ChainUncleEvent struct {
 	Block *types.Block
 }
@@ -82,4 +95,4 @@ type GasPriceChanged struct{ Price *big.Int }
 
 // Mining operation events
 type StartMining struct{}
-type TopMining struct{}
+type StopMining struct{}

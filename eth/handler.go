@@ -112,6 +112,7 @@ func NewProtocolManager(config *core.ChainConfig, fastSync bool, networkId int, 
 	}
 	if fastSync {
 		manager.fastSync = uint32(1)
+		glog.D(logger.Info).Infoln("Fast sync mode enabled.")
 	}
 	// Initiate a sub-protocol for every implemented version we can handle
 	manager.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
@@ -645,7 +646,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if _, td := p.Head(); trueTD.Cmp(td) > 0 {
 			glog.V(logger.Debug).Infof("Peer %s: setting head: tdWas=%v trueTD=%v", p.id, td, trueTD)
 			p.SetHead(trueHead, trueTD)
-			
+
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
