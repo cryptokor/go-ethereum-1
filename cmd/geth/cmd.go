@@ -861,6 +861,7 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 	glog.V(logger.Info).Infof("Rolling SYNC log interval set: %d seconds", intervalI)
 
 	// Only use severity=warn if --log-status not in use (ie using defaults)
+	statIntervalNotice := fmt.Sprintf("Rolling SYNC status logs set to every %d seconds. ", intervalI)
 	if !ctx.GlobalIsSet(LogStatusFlag.Name) {
 		statIntervalNotice += fmt.Sprintf("You can adjust this with the --%s flag.", LogStatusFlag.Name)
 		glog.D(logger.Error).Warnln(statIntervalNotice)
