@@ -1029,7 +1029,6 @@ const bufferSize = 256 * 1024
 // createFiles creates all the log files for severity from sev down to infoLog.
 // l.mu is held.
 func (l *loggingT) createFiles(sev severity) error {
-	fmt.Println("creating file severity=", sev)
 	now := time.Now()
 	// Files are created in decreasing severity order, so as soon as we find one
 	// has already been created, we can stop.
@@ -1039,7 +1038,6 @@ func (l *loggingT) createFiles(sev severity) error {
 			sev:    s,
 		}
 		if err := sb.rotateFile(now); err != nil {
-			fmt.Println("error rotating file", err)
 			return err
 		}
 		l.file[s] = sb
