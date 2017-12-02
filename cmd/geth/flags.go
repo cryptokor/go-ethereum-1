@@ -162,7 +162,7 @@ var (
 	LogDirFlag = DirectoryFlag{
 		Name:  "log-dir,logdir",
 		Usage: "Directory in which to write log files.",
-		Value: DirectoryString{filepath.Join(common.DefaultDataDir(), "logs")},
+		Value: DirectoryString{filepath.Join(common.DefaultDataDir(), "mainnet", "log")},
 	}
 	LogStatusFlag = cli.StringFlag{
 		Name:  "log-status",
@@ -177,8 +177,7 @@ var (
 	MLogDirFlag = DirectoryFlag{
 		Name:  "mlog-dir",
 		Usage: "Directory in which to write machine log files",
-		// TODO: move to chain-subdir?
-		Value: DirectoryString{filepath.Join(common.DefaultDataDir(), "mlogs")},
+		Value: DirectoryString{filepath.Join(common.DefaultDataDir(), "mainnet", "mlogs")},
 	}
 	MLogComponentsFlag = cli.StringFlag{
 		Name:  "mlog-components",

@@ -184,7 +184,7 @@ func mustMakeChainIdentity(ctx *cli.Context) (identity string) {
 			glog.V(logger.Debug).Infof("Found existing file at --%v: %v", aliasableName(ChainIdentityFlag.Name, ctx), chainFlagVal)
 			c, configurationError := core.ReadExternalChainConfigFromFile(filepath.Clean(chainFlagVal))
 			if configurationError == nil {
-				glog.V(logger.Debug).Infof("OK: Valid chain configuration. Chain identity: %v", c.Identity)
+				// glog.V(logger.Debug).Infof("OK: Valid chain configuration. Chain identity: %v", c.Identity)
 				if e := copyChainConfigFileToChainDataDir(ctx, c.Identity, filepath.Clean(chainFlagVal)); e != nil {
 					glog.Fatalf("Could not copy chain configuration: %v", e)
 				}
@@ -201,7 +201,7 @@ func mustMakeChainIdentity(ctx *cli.Context) (identity string) {
 			glog.Fatalf("Invalid chain config file at --%v: '%v': %v \nAssuming literal identity argument.",
 				aliasableName(ChainIdentityFlag.Name, ctx), chainFlagVal, configurationError)
 		}
-		glog.V(logger.Debug).Infof("No existing file at --%v: '%v'. Using literal chain identity.", aliasableName(ChainIdentityFlag.Name, ctx), chainFlagVal)
+		// glog.V(logger.Debug).Infof("No existing file at --%v: '%v'. Using literal chain identity.", aliasableName(ChainIdentityFlag.Name, ctx), chainFlagVal)
 		identity = chainFlagVal
 		return identity
 	} else if ctx.GlobalIsSet(aliasableName(ChainIdentityFlag.Name, ctx)) {

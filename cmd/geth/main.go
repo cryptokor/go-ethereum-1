@@ -235,16 +235,29 @@ func makeCLIApp() (app *cli.App) {
 
 		glog.CopyStandardLogTo("INFO")
 
+		// log.Println("Writing logs to ", logDir)
+		// Turn on only file logging, disabling logging(T).toStderr and logging(T).alsoToStdErr
+		glog.SetToStderr(false)
+		glog.SetAlsoToStderr(false)
+
 		// Set up file logging.
 		logDir := filepath.Join(MustMakeChainDataDir(ctx), "log")
+		if ctx.GlobalIsSet(aliasableName(LogDirFlag.Name, ctx)) {
+			ld := ctx.GlobalString(aliasableName(LogDirFlag.Name, ctx))
+			ldAbs, err := filepath.Abs(ld)
+			if err != nil {
+				glog.Fatalln(err)
+			}
+			logDir = ldAbs
+		}
+		// Ensure mkdir -p
 		if e := os.MkdirAll(logDir, os.ModePerm); e != nil {
 			return e
 		}
-		// log.Println("Writing logs to ", logDir)
-		// Turn on only file logging, disabling logging(T).toStderr and logging(T).alsoToStdErr
+		// Set log dir.
+		// GOTCHA: There may be NO glog.V logs called before this is set.
+		//   Otherwise everything will get all fucked and there will be no logs.
 		glog.SetLogDir(logDir)
-		glog.SetToStderr(false)
-		glog.SetAlsoToStderr(false)
 
 		if ctx.GlobalBool(NeckbeardFlag.Name) {
 			glog.SetD(0)
