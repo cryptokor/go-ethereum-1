@@ -669,7 +669,7 @@ func dumpChainConfig(ctx *cli.Context) error {
 		return writeError
 	}
 
-	glog.D(logger.Error).Info(fmt.Sprintf("Wrote chain config file to \x1b[32m%s\x1b[39m.", chainConfigFilePath))
+	glog.D(logger.Error).Infoln(fmt.Sprintf("Wrote chain config file to \x1b[32m%s\x1b[39m.", chainConfigFilePath))
 	return nil
 }
 

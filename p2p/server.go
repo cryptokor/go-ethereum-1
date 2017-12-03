@@ -308,6 +308,7 @@ func (srv *Server) Start() (err error) {
 	}
 	srv.running = true
 	glog.V(logger.Info).Infoln("Starting Server")
+	glog.D(logger.Warn).Infoln("Starting server...")
 
 	// static fields
 	if srv.PrivateKey == nil {
@@ -358,6 +359,7 @@ func (srv *Server) Start() (err error) {
 	}
 	if srv.NoDial && srv.ListenAddr == "" {
 		glog.V(logger.Warn).Infoln("I will be kind-of useless, neither dialing nor listening.")
+		glog.V(logger.Warn).Warnln("Server will be kind of useless, neither dialing nor listening.")
 	}
 
 	srv.loopWG.Add(1)
