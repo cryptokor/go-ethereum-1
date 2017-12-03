@@ -885,9 +885,10 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 	var lsModeDiscoverSpinners = []string{"➫", "➬", "➭"}
 
 	var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
-	chainIcon := "◼︎⋯⋯" + logger.ColorGreen("◼︎")
-	forkIcon := "◼︎⋯⦦" + logger.ColorGreen("◼︎")
-	downloaderIcon := "◼︎⋯⋯" + logger.ColorGreen("⬇︎")
+	chainIcon := "◼⋯⋯" + logger.ColorGreen("◼")
+	forkIcon := "◼⋯⦦" + logger.ColorGreen("◼")
+	headerIcon := "◼⋯⋯" + logger.ColorGreen("❐")
+	downloaderIcon := "◼⋯⋯" + logger.ColorGreen("⬇")
 
 	var sigc = make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
@@ -917,6 +918,9 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 	greenParenify := func(s string) string {
 		return logger.ColorGreen("⟪") + s + logger.ColorGreen("⟫")
 	}
+	redParenify := func(s string) string {
+		return logger.ColorRed("⟪") + s + logger.ColorRed("⟫")
+	}
 	handleDownloaderEvent := func(e interface{}) {
 		s := downloaderIcon + " "
 		switch d := e.(type) {
@@ -927,7 +931,7 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 			s += "Done  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]+"…") + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
 			glog.D(logger.Info).Infoln(s)
 		case downloader.FailedEvent:
-			s += "Fail  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " err=" + greenParenify(d.Err.Error())
+			s += "Fail  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " " + logger.ColorRed("err") + "=" + redParenify(d.Err.Error())
 			glog.D(logger.Info).Warnln(s)
 		}
 	}
@@ -948,7 +952,7 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 				// 	greenParenify(fmt.Sprintf("%v ago", time.Since(d.LatestBlockTime))),
 				// 	greenParenify(fmt.Sprintf("%v", d.Elasped)),
 				// )
-				glog.D(logger.Info).Infof(chainIcon+" Insert "+logger.ColorGreen("stats")+"=%s "+logger.ColorGreen("◼︎")+"=%s "+logger.ColorGreen("took")+"=%s",
+				glog.D(logger.Info).Infof(chainIcon+" Insert "+logger.ColorGreen("blocks")+"=%s "+logger.ColorGreen("◼")+"=%s "+logger.ColorGreen("took")+"=%s",
 					greenParenify(fmt.Sprintf("processed=%4d queued=%4d ignored=%4d txs=%4d", d.Processed, d.Queued, d.Ignored, d.TxCount)),
 					greenParenify(fmt.Sprintf("n=%8d hash=%s… time=%v ago", d.LastNumber, d.LastHash.Hex()[:9], time.Since(d.LatestBlockTime))),
 					greenParenify(fmt.Sprintf("%v", d.Elasped)),
@@ -1094,7 +1098,7 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 		}
 		var blocksprocesseddisplay string
 		if lsMode != lsModeImport {
-			blocksprocesseddisplay = logger.ColorGreen("~") + greenParenify(fmt.Sprintf("%4d blks %4d txs %2d mgas  /sec", numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI))
+			blocksprocesseddisplay = logger.ColorGreen("~") + greenParenify(fmt.Sprintf("%4d blks %4d txs %2d mgas  "+logger.ColorGreen("/sec"), numBlocksDiffPerSecond, numTxsDiffPerSecond, mGasPerSecondI))
 		} else {
 			blocksprocesseddisplay = logger.ColorGreen("+") + greenParenify(fmt.Sprintf("%4d blks %4d txs %8d mgas", numBlocksDiff, numTxsDiff, mGas.Uint64()))
 			domOrHeight = dominoGraph
