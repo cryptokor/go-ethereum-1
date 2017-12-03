@@ -440,7 +440,7 @@ func (n *Node) stopWS() {
 		n.wsListener = nil
 
 		glog.V(logger.Info).Infof("WebSocket endpoint closed: ws://%s", n.wsEndpoint)
-		glog.V(logger.Warn).Warnf("WebSocket endpoint closed: ws://%s", logger.ColorYellow(n.wsEndpoint))
+		glog.V(logger.Warn).Warnf("WebSocket endpoint closed: ws://%s", n.wsEndpoint)
 	}
 	if n.wsHandler != nil {
 		n.wsHandler.Stop()
