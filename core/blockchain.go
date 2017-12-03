@@ -451,11 +451,12 @@ func (self *BlockChain) Recovery(from int, increment int) (checkpoint uint64) {
 	}
 
 	// Set up logging for block recovery progress.
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(time.Second * 3)
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
 			glog.V(logger.Info).Warnf("Recovered checkpoints through block #%d", checkpoint)
+			glog.D(logger.Warn).Warnf("Recovered checkpoints through block #%d", checkpoint)
 		}
 	}()
 
@@ -474,10 +475,10 @@ func (self *BlockChain) Recovery(from int, increment int) (checkpoint uint64) {
 		if checkpointBlockNext == nil {
 			// Traverse in small steps (increment =1) from last known big step (increment >1) checkpoint.
 			if increment > 1 && i-increment > 1 {
-				glog.V(logger.Debug).Infof("Reached nil block #%d, retrying recovery beginning from #%d, incrementing +%d", i, i-increment, 1)
+				glog.V(logger.Debug).Warnf("Reached nil block #%d, retrying recovery beginning from #%d, incrementing +%d", i, i-increment, 1)
 				return self.Recovery(i-increment, 1) // hone in
 			}
-			glog.V(logger.Debug).Infof("No block data available for block #%d", uint64(i))
+			glog.V(logger.Debug).Warnf("No block data available for block #%d", uint64(i))
 			break
 		}
 
@@ -504,14 +505,14 @@ func (self *BlockChain) Recovery(from int, increment int) (checkpoint uint64) {
 			}
 			continue
 		}
-		glog.V(logger.Error).Infof("WARNING: Found unhealthy block #%d (%v): \n\n%v", i, ee, checkpointBlockNext)
+		glog.V(logger.Error).Errorf("Found unhealthy block #%d (%v): \n\n%v", i, ee, checkpointBlockNext)
 		if increment == 1 {
 			break
 		}
 		return self.Recovery(i-increment, 1)
 	}
 	if checkpoint > 0 {
-		glog.V(logger.Warn).Infof("WARNING: Found recoverable blockchain data through block #%d", checkpoint)
+		glog.V(logger.Warn).Warnf("Found recoverable blockchain data through block #%d", checkpoint)
 	}
 	return checkpoint
 }
@@ -536,7 +537,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 		defer self.mu.Lock()
 
 		if recoveredHeight == 0 {
-			glog.V(logger.Warn).Errorln("WARNING: No recoverable data found, resetting to genesis.")
+			glog.V(logger.Error).Errorln("WARNING: No recoverable data found, resetting to genesis.")
 			return self.Reset()
 		}
 		// Remove all block header and canonical data above recoveredHeight
@@ -574,7 +575,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 		glog.V(logger.Info).Infof("Validating currentBlock: %v", currentBlock.Number())
 		if e := self.blockIsInvalid(currentBlock); e != nil {
 			if !dryrun {
-				glog.V(logger.Warn).Warnf("WARNING: Found unhealthy head full block #%d (%x): %v \nAttempting chain reset with recovery.", currentBlock.Number(), currentBlock.Hash(), e)
+				glog.V(logger.Warn).Errorf("Found unhealthy head full block #%d (%x): %v \nAttempting chain reset with recovery.", currentBlock.Number(), currentBlock.Hash(), e)
 				return recoverOrReset()
 			}
 			return fmt.Errorf("invalid currentBlock: %v", e)
@@ -596,7 +597,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	// Ensure total difficulty exists and is valid for current header.
 	if td := currentHeader.Difficulty; td == nil || td.Sign() < 1 {
 		if !dryrun {
-			glog.V(logger.Warn).Warnf("WARNING: Found current header #%d with invalid TD=%v\nAttempting chain reset with recovery...", currentHeader.Number, td)
+			glog.V(logger.Warn).Errorf("Found current header #%d with invalid TD=%v\nAttempting chain reset with recovery...", currentHeader.Number, td)
 			return recoverOrReset()
 		}
 		return fmt.Errorf("invalid TD=%v for currentHeader=#%d", td, currentHeader.Number)
@@ -618,7 +619,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 		glog.V(logger.Info).Infof("Validating currentFastBlock: %v", self.currentFastBlock.Number())
 		if e := self.blockIsInvalid(self.currentFastBlock); e != nil {
 			if !dryrun {
-				glog.V(logger.Warn).Warnf("WARNING: Found unhealthy head fast block #%d (%x): %v \nAttempting chain reset with recovery.", self.currentFastBlock.Number(), self.currentFastBlock.Hash(), e)
+				glog.V(logger.Warn).Errorf("Found unhealthy head fast block #%d (%x): %v \nAttempting chain reset with recovery.", self.currentFastBlock.Number(), self.currentFastBlock.Hash(), e)
 				return recoverOrReset()
 			}
 			return fmt.Errorf("invalid currentFastBlock: %v", e)
@@ -650,19 +651,19 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	aboveHighestApparentHead := highestApparentHead + 2048
 
 	if b := self.GetBlockByNumber(aboveHighestApparentHead); b != nil {
-		glog.V(logger.Warn).Warnf("WARNING: Found block data beyond apparent head (head=%d, found=%d)", highestApparentHead, aboveHighestApparentHead)
+		glog.V(logger.Warn).Warnf("Found block data beyond apparent head (head=%d, found=%d)", highestApparentHead, aboveHighestApparentHead)
 		return recoverOrReset()
 	}
 
 	// Check head block number congruent to hash.
 	if b := self.GetBlockByNumber(self.currentBlock.NumberU64()); b != nil && b.Header() != nil && b.Header().Hash() != self.currentBlock.Hash() {
-		glog.V(logger.Error).Warnf("WARNING: Found head block number and hash mismatch: number=%d, hash=%x", self.currentBlock.NumberU64(), self.currentBlock.Hash())
+		glog.V(logger.Error).Errorf("Found head block number and hash mismatch: number=%d, hash=%x", self.currentBlock.NumberU64(), self.currentBlock.Hash())
 		return recoverOrReset()
 	}
 
 	// Check head header number congruent to hash.
 	if h := self.hc.GetHeaderByNumber(self.hc.CurrentHeader().Number.Uint64()); h != nil && self.hc.GetHeader(h.Hash()) != h {
-		glog.V(logger.Error).Warnf("WARNING: Found head header number and hash mismatch: number=%d, hash=%x", self.hc.CurrentHeader().Number.Uint64(), self.hc.CurrentHeader().Hash())
+		glog.V(logger.Error).Errorf("Found head header number and hash mismatch: number=%d, hash=%x", self.hc.CurrentHeader().Number.Uint64(), self.hc.CurrentHeader().Hash())
 		return recoverOrReset()
 	}
 
@@ -674,7 +675,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	}
 	// If the current header is behind head full block OR fast block, we should reset to the height of last OK header.
 	if self.hc.CurrentHeader().Number.Cmp(highestCurrentBlockFastOrFull) < 0 {
-		glog.V(logger.Warn).Warnf("WARNING: Found header height below block height, attempting reset with recovery...")
+		glog.V(logger.Error).Errorf("Found header height below block height, attempting reset with recovery...")
 		return recoverOrReset()
 	}
 
