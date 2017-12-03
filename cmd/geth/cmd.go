@@ -884,6 +884,7 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 
 	var dominoes = []string{"🁣", "🁤", "🁥", "🁦", "🁭", "🁴", "🁻", "🁼", "🂃", "🂄", "🂋", "🂌", "🂓"} // 🁣🁤🁥🁦🁭🁴🁻🁼🂃🂄🂋🂌🂓
 	chainIcon := "◼︎⋯⋯" + logger.ColorGreen("◼︎")
+	forkIcon := "◼︎⋯⦦" + logger.ColorGreen("◼︎")
 	downloaderIcon := "◼︎⋯⋯" + logger.ColorGreen("⬇︎")
 
 	var sigc = make(chan os.Signal, 1)
@@ -916,10 +917,10 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 		s := downloaderIcon + " "
 		switch d := e.(type) {
 		case downloader.StartEvent:
-			s += "Start " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]) + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
+			s += "Start " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]+"…") + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
 			glog.D(logger.Info).Infoln(s)
 		case downloader.DoneEvent:
-			s += "Done  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]) + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
+			s += "Done  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " hash=" + greenParenify(d.Hash.Hex()[:9]+"…") + " TD=" + greenParenify(fmt.Sprintf("%v", d.TD))
 			glog.D(logger.Info).Infoln(s)
 		case downloader.FailedEvent:
 			s += "Fail  " + greenParenify(fmt.Sprintf("%s", d.Peer)) + " err=" + greenParenify(d.Err.Error())
@@ -952,7 +953,7 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 					chainEventLastSent = time.Now()
 				}
 			case core.ChainSideEvent:
-				glog.D(logger.Info).Infof(chainIcon+" Insert forked block blockN=%s blockHash=%s", greenParenify(strconv.Itoa(int(d.Block.NumberU64()))), greenParenify(d.Block.Hash().Hex()[:9]))
+				glog.D(logger.Info).Infof(forkIcon+" Insert forked block blockN=%s blockHash=%s", greenParenify(strconv.Itoa(int(d.Block.NumberU64()))), greenParenify(d.Block.Hash().Hex()[:9]+"…"))
 				// chainEventLastSent = time.Now()
 			default:
 				handleDownloaderEvent(d)
