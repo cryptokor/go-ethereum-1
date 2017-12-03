@@ -180,7 +180,7 @@ func TestHeader1ErrorLog(t *testing.T) {
 	pid = 1234
 	Error("test")
 	var line int
-	format := severityColor[errorLog] + "E0102 15:04:05.067890" + severityColorReset + " logger/glog/glog_test.go:%d] test\n"
+	format := severityColor[errorLog] + "E" + severityColorReset + "0102 15:04:05.067890 logger/glog/glog_test.go:%d] test\n"
 	n, err := fmt.Sscanf(contents(errorLog), format, &line)
 	if n != 1 || err != nil {
 		t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(errorLog))
@@ -206,7 +206,7 @@ func TestHeader2InfoLog(t *testing.T) {
 	defer logging.verbosityTraceThreshold.set(s)
 	pid = 1234
 	Info("test")
-	format := severityColor[infoLog] + "I0102 15:04:05.067890" + severityColorReset + " test\n"
+	format := severityColor[infoLog] + "I" + severityColorReset + "0102 15:04:05.067890 logger/glog/glog_test.go:208] test\n"
 	n, err := fmt.Sscanf(contents(infoLog), format)
 	if err != nil {
 		t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(infoLog))
