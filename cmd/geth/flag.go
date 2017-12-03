@@ -507,8 +507,8 @@ func mustRegisterMLogsFromContext(ctx *cli.Context) {
 		for k := range logger.MLogRegistryAvailable {
 			components = append(components, string(k))
 		}
-		glog.V(logger.Error).Infof("Error: %s", e)
-		glog.V(logger.Error).Infof("Available machine log components: %v", components)
+		glog.V(logger.Error).Errorf("Error: %s", e)
+		glog.V(logger.Error).Errorf("Available machine log components: %v", components)
 		os.Exit(1)
 	}
 	// Set the global logger mlog format from context
@@ -590,6 +590,7 @@ func MakeSystemNode(version string, ctx *cli.Context) *node.Node {
 		// Just demonstrative code.
 		if b := logger.SetMlogEnabled(false); b == false && logger.MlogEnabled() == false {
 			glog.V(logger.Warn).Warnf("Machine logs: disabled")
+			glog.D(logger.Info).Warnf("Machine logs disabled.")
 		}
 	}
 
@@ -739,10 +740,12 @@ func mustMakeSufficientChainConfig(ctx *cli.Context) *core.SufficientChainConfig
 		if ctx.GlobalIsSet(aliasableName(BootnodesFlag.Name, ctx)) {
 			config.ParsedBootstrap = MakeBootstrapNodesFromContext(ctx)
 			glog.V(logger.Warn).Warnf(`Overwriting external bootnodes configuration with those from --%s flag. Value set from flag: %v`, aliasableName(BootnodesFlag.Name, ctx), config.ParsedBootstrap)
+			glog.D(logger.Warn).Warnf(`Overwriting external bootnodes configuration with those from --%s flag. Value set from flag: %v`, aliasableName(BootnodesFlag.Name, ctx), config.ParsedBootstrap)
 		}
 		if ctx.GlobalIsSet(aliasableName(NetworkIdFlag.Name, ctx)) {
 			i := ctx.GlobalInt(aliasableName(NetworkIdFlag.Name, ctx))
 			glog.V(logger.Warn).Warnf(`Overwriting external network id configuration with that from --%s flag. Value set from flag: %d`, aliasableName(NetworkIdFlag.Name, ctx), i)
+			glog.D(logger.Warn).Warnf(`Overwriting external network id configuration with that from --%s flag. Value set from flag: %d`, aliasableName(NetworkIdFlag.Name, ctx), i)
 			if i < 1 {
 				glog.Fatalf("Network ID cannot be less than 1. Got: %d", i)
 			}
@@ -890,7 +893,8 @@ func MakeChain(ctx *cli.Context) (chain *core.BlockChain, chainDb ethdb.Database
 	if !ctx.GlobalBool(aliasableName(FakePoWFlag.Name, ctx)) {
 		pow = ethash.New()
 	} else {
-		glog.V(logger.Info).Info("Consensus: fake")
+		glog.V(logger.Info).Infoln("Consensus: fake")
+		glog.D(logger.Warn).Warnln("Consensus: fake")
 	}
 
 	chain, err = core.NewBlockChain(chainDb, sconf.ChainConfig, pow, new(event.TypeMux))
