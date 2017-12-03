@@ -344,7 +344,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 	case errTimeout, errBadPeer, errStallingPeer, errEmptyHashSet,
 		errEmptyHeaderSet, errPeersUnavailable, errTooOld,
 		errInvalidAncestor, errInvalidChain:
-		glog.V(logger.Core).Errorf("Peer %s: drop: %s", id, err)
+		glog.V(logger.Core).Warnf("Peer %s: drop: %s", id, err)
 		d.dropPeer(id)
 
 	case errCancelBlockFetch, errCancelHeaderFetch, errCancelBodyFetch, errCancelReceiptFetch, errCancelStateFetch, errCancelHeaderProcessing, errCancelContentProcessing:
