@@ -88,9 +88,7 @@ type ChainInsertEvent struct {
 
 type HeaderChainInsertEvent struct {
 	Processed  int
-	Queued     int
 	Ignored    int
-	TxCount    int
 	LastNumber uint64
 	LastHash   common.Hash
 	Elasped    time.Duration

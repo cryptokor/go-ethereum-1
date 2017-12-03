@@ -905,6 +905,8 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 		// ChainInsertEvent is called when a batch of block is finished processing through the bc.InsertChain fn.
 		// It includes statistics. Processed, queued, ignored, txcount, etc.
 		core.ChainInsertEvent{},
+		// HeaderChainInsertEvent is called when headers are inserted into the headerchain, ie. fastsync.
+		core.HeaderChainInsertEvent{},
 		// StartEvent is called when a peer is selected for synchronisation and sync begins.
 		downloader.StartEvent{},
 		// DoneEvent is called when synchronisation with a peer finishes without error.
@@ -955,8 +957,13 @@ func runStatusSyncLogs(ctx *cli.Context, e *eth.Ethereum, interval string, maxPe
 					chainEventLastSent = time.Now()
 				}
 			case core.ChainSideEvent:
-				glog.D(logger.Info).Infof(forkIcon+" Insert forked block blockN=%s blockHash=%s", greenParenify(strconv.Itoa(int(d.Block.NumberU64()))), greenParenify(d.Block.Hash().Hex()[:9]+"…"))
-				// chainEventLastSent = time.Now()
+				glog.D(logger.Info).Infof(forkIcon+" Insert "+logger.ColorGreen("forked block")+"=%s", greenParenify(fmt.Sprintf("n=%8d hash=%s…", d.Block.NumberU64(), d.Block.Hash().Hex()[:9])))
+			case core.HeaderChainInsertEvent:
+				glog.D(logger.Info).Infof(headerIcon+" Insert "+logger.ColorGreen("headers")+"=%s "+logger.ColorGreen("❐")+"=%s"+logger.ColorGreen("took")+"=%s",
+					greenParenify(fmt.Sprintf("processed=%4d ignored=%4d", d.Processed, d.Ignored)),
+					greenParenify(fmt.Sprintf("n=%4d hash=%s…", d.LastNumber, d.LastHash.Hex()[:9])),
+					greenParenify(fmt.Sprintf("%v", d.Elasped)),
+				)
 			default:
 				handleDownloaderEvent(d)
 			}

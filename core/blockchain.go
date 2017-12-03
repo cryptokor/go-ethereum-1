@@ -136,7 +136,7 @@ func NewBlockChain(chainDb ethdb.Database, config *ChainConfig, pow pow.PoW, mux
 
 	gv := func() HeaderValidator { return bc.Validator() }
 	var err error
-	bc.hc, err = NewHeaderChain(chainDb, config, gv, bc.getProcInterrupt)
+	bc.hc, err = NewHeaderChain(chainDb, config, mux, gv, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func NewBlockChainDryrun(chainDb ethdb.Database, config *ChainConfig, pow pow.Po
 
 	gv := func() HeaderValidator { return bc.Validator() }
 	var err error
-	bc.hc, err = NewHeaderChain(chainDb, config, gv, bc.getProcInterrupt)
+	bc.hc, err = NewHeaderChain(chainDb, config, mux, gv, bc.getProcInterrupt)
 	if err != nil {
 		return nil, err
 	}
