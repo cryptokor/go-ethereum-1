@@ -651,7 +651,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	aboveHighestApparentHead := highestApparentHead + 2048
 
 	if b := self.GetBlockByNumber(aboveHighestApparentHead); b != nil {
-		glog.V(logger.Warn).Warnf("Found block data beyond apparent head (head=%d, found=%d)", highestApparentHead, aboveHighestApparentHead)
+		glog.V(logger.Warn).Errorf("Found block data beyond apparent head (head=%d, found=%d)", highestApparentHead, aboveHighestApparentHead)
 		return recoverOrReset()
 	}
 
