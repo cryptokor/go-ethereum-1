@@ -1334,7 +1334,6 @@ func (l *loggingT) createFiles(sev severity) error {
 		if err := sb.rotateCurrent(now); err != nil {
 			return err
 		}
-		go sb.rotateOld(now) // force cleanup of old files
 		l.file[s] = sb
 	}
 	return nil
