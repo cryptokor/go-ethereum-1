@@ -227,9 +227,9 @@ func makeCLIApp() (app *cli.App) {
 
 		runtime.GOMAXPROCS(runtime.NumCPU())
 
-		glog.MaxSize = 10 * 1024 * 1024
-		glog.MinSize = 1 * 1024 * 1024
-		glog.MaxTotalSize = 100 * 1024 * 1024
+		glog.MaxSize = 100 * 1024 * 1024
+		glog.MinSize = 10 * 1024 * 1024
+		glog.MaxTotalSize = 1024 * 1024 * 1024
 		glog.Compress = true
 		glog.RotationInterval = glog.Hourly
 		glog.MaxAge = 24 * time.Hour
